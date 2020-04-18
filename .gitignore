@@ -1,0 +1,6 @@
+# Default ignored files
+#/.gitignore
+.idea
+/x-RdbmsSyncTool.iml
+/log/
+/target/

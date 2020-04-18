@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="525.0" prefWidth="1005.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController">
+   <children>
+      <BorderPane AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
+         <top>
+            <VBox spacing="5.0" BorderPane.alignment="CENTER">
+               <children>
+                  <HBox alignment="CENTER_LEFT" spacing="5.0">
+                     <children>
+                        <Label text="源端库" />
+                        <Label text="ip" />
+                        <TextField fx:id="hostText1" text="127.0.0.1" />
+                        <Label text="端口" />
+                        <TextField fx:id="portText1" prefWidth="46.0" text="3306" />
+                        <Label text="dbName" />
+                        <TextField fx:id="dbNameText1" />
+                        <Label text="类型" />
+                        <ChoiceBox fx:id="dbTypeText1" prefWidth="66.0" />
+                        <Label text="用户名" />
+                        <TextField fx:id="userNameText1" text="root" />
+                        <Label text="密码" />
+                        <StackPane>
+                           <children>
+                              <PasswordField fx:id="pwdText1" text="" />
+                           </children>
+                        </StackPane>
+                        <Button fx:id="connectButton1" mnemonicParsing="false" onAction="#connectAction1" text="连接" />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" spacing="5.0">
+                     <children>
+                        <Label text="目标库" />
+                        <Label text="ip" />
+                        <TextField fx:id="hostText2" text="127.0.0.1" />
+                        <Label text="端口" />
+                        <TextField fx:id="portText2" prefWidth="46.0" text="3306" />
+                        <Label text="dbName" />
+                        <TextField fx:id="dbNameText2" text="wms" />
+                        <Label text="类型" />
+                        <ChoiceBox fx:id="dbTypeText2" prefWidth="66.0" />
+                        <Label text="用户名" />
+                        <TextField fx:id="userNameText2" text="root" />
+                        <Label text="密码" />
+                        <StackPane>
+                           <children>
+                              <PasswordField fx:id="pwdText2" text="easipass" />
+                           </children>
+                        </StackPane>
+                        <Button fx:id="connectButton2" mnemonicParsing="false" onAction="#connectAction2" text="连接" />
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+         </top>
+         <center>
+            <SplitPane dividerPositions="0.5" BorderPane.alignment="CENTER">
+               <items>
+                  <TreeView fx:id="tableTreeView1" prefHeight="200.0" prefWidth="200.0" />
+                  <TreeView fx:id="tableTreeView2" prefHeight="200.0" prefWidth="200.0" />
+               </items>
+               <BorderPane.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </BorderPane.margin>
+            </SplitPane>
+         </center>
+         <bottom>
+            <VBox spacing="5.0" BorderPane.alignment="CENTER">
+               <BorderPane.margin>
+                  <Insets />
+               </BorderPane.margin>
+               <children>
+                  <HBox alignment="CENTER_LEFT" spacing="5.0">
+                     <children>
+                        <Label text="通道数" />
+                        <Spinner fx:id="channelSpinner" editable="true" prefHeight="23.0" prefWidth="65.0" />
+                        <Label text="自定义sql" />
+                        <TextField fx:id="querySqlTextField" promptText="请输入querySql" />
+                        <CheckBox fx:id="isShowCheckBox" mnemonicParsing="false" selected="true" text="预览" />
+                        <Label text="同步数量" />
+                        <Spinner fx:id="syncDataNumberSpinner" editable="true" prefHeight="23.0" prefWidth="65.0">
+                           <tooltip>
+                              <Tooltip text="测试同步数据时的数据量（-1为所有）" />
+                           </tooltip>
+                        </Spinner>
+                        <Button fx:id="showSqlButton" mnemonicParsing="false" onAction="#showSqlAction" text="建表语句">
+                           <tooltip>
+                              <Tooltip text="生成Mysql建表语句" />
+                           </tooltip>
+                        </Button>
+                        <Button mnemonicParsing="false" onAction="#testInstertSqlAction" text="同步数据">
+                           <tooltip>
+                              <Tooltip text="勾选两边的表可将左边表的数据同步至右边（默认100条）" />
+                           </tooltip>
+                        </Button>
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+         </bottom>
+      </BorderPane>
+   </children>
+</AnchorPane>
