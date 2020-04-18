@@ -1,22 +1,27 @@
 package com.xwintop.xJavaFxTool.controller.debugTools;
 
+import cn.hutool.core.thread.ThreadUtil;
 import com.xwintop.xJavaFxTool.services.debugTools.RdbmsSyncToolService;
 import com.xwintop.xJavaFxTool.services.debugTools.UrlDocumentDialogService;
+import com.xwintop.xJavaFxTool.tools.DataxJsonUtil;
 import com.xwintop.xJavaFxTool.view.debugTools.RdbmsSyncToolView;
 import com.xwintop.xcore.util.javafx.JavaFxViewUtil;
 import com.xwintop.xcore.util.javafx.TooltipUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.CheckBoxTreeItem;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTreeCell;
+import javafx.scene.input.MouseButton;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.controlsfx.control.MaskerPane;
 
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +33,13 @@ import java.util.ResourceBundle;
 public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private RdbmsSyncToolService entDataToolService = new RdbmsSyncToolService(this);
     private ContextMenu contextMenu = new ContextMenu();
-    private String[] dbTypeStrings = new String[]{"mysql", "sqlserver", "oracle"};
+    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "postgresql", "sqlserver", "sqlserverold", "dm"};
+    private String[] jsonNameSuffixStrings = new String[]{".json"};
+    private String[] outputPathStrings = new String[]{"./executor"};
+    private String[] quartzChoiceBoxStrings = new String[]{"SIMPLE", "CRON"};
+    private String[] tableTypeStrings = new String[]{"TABLE+VIEW", "TABLE", "VIEW", "SYSTEM_TABLE", "GLOBAL_TEMPORARY", "LOCAL_TEMPORARY", "ALIAS", "SYNONYM"};
+    private String[] dataSourceTypeStrings = new String[]{"Druid", "Driver", "Simple"};
+    private MaskerPane masker = new MaskerPane();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -38,6 +49,8 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     }
 
     private void initView() {
+        masker.setVisible(false);
+        loadingStackPane.getChildren().add(masker);
         hostText1.setText("192.168.129.121");
         dbNameText1.setText("test");
         pwdText1.setText("easipass");
@@ -48,23 +61,168 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         dbTypeText1.setValue(dbTypeStrings[0]);
         dbTypeText2.getItems().addAll(dbTypeStrings);
         dbTypeText2.setValue(dbTypeStrings[0]);
+        jsonNameSuffixComboBox.getItems().addAll(jsonNameSuffixStrings);
+        outputPathComboBox.getItems().addAll(outputPathStrings);
 
-        CheckBoxTreeItem<String> rootItem = new CheckBoxTreeItem<>("源端库表");
-        rootItem.setExpanded(true);
         tableTreeView1.setCellFactory(CheckBoxTreeCell.<String>forTreeView());
-        tableTreeView1.setRoot(rootItem);
+        tableTreeView1.setRoot(new CheckBoxTreeItem<>("源端库表"));
+        tableTreeView1.getRoot().setExpanded(true);
         tableTreeView1.setShowRoot(true);
         tableTreeView2.setCellFactory(CheckBoxTreeCell.<String>forTreeView());
         tableTreeView2.setRoot(new CheckBoxTreeItem<>("目标端库表"));
         tableTreeView2.getRoot().setExpanded(true);
         tableTreeView2.setShowRoot(true);
-        JavaFxViewUtil.setSpinnerValueFactory(channelSpinner, 1, Integer.MAX_VALUE, 6);
         JavaFxViewUtil.setSpinnerValueFactory(syncDataNumberSpinner, -1, Integer.MAX_VALUE, 10);
+
+        quartzChoiceBox.getItems().addAll(quartzChoiceBoxStrings);
+        quartzChoiceBox.getSelectionModel().select(0);
+        JavaFxViewUtil.setSpinnerValueFactory(intervalSpinner, 1, Integer.MAX_VALUE, 5);
+        JavaFxViewUtil.setSpinnerValueFactory(repeatCountSpinner, -1, Integer.MAX_VALUE, 0);
+
+        tableTypeChoiceBox.getItems().addAll(tableTypeStrings);
+        tableTypeChoiceBox.setValue(tableTypeChoiceBox.getItems().get(1));
+        dataSourceTypeChoiceBox.getItems().addAll(dataSourceTypeStrings);
+        dataSourceTypeChoiceBox.setValue(dataSourceTypeChoiceBox.getItems().get(0));
     }
 
     private void initEvent() {
         addUrlDocumentDialogController(hostText1);
         addUrlDocumentDialogController(hostText2);
+        addTableTreeViewMouseClicked(tableTreeView1);
+        addTableTreeViewMouseClicked(tableTreeView2);
+        quartzChoiceBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (quartzChoiceBoxStrings[0].equals(newValue)) {
+                cronTextField.setVisible(false);
+                simpleScheduleAnchorPane.setVisible(true);
+            } else if (quartzChoiceBoxStrings[1].equals(newValue)) {
+                cronTextField.setVisible(true);
+                simpleScheduleAnchorPane.setVisible(false);
+            }
+        });
+        dbTypeText1.valueProperty().addListener((observable, oldValue, newValue) -> {
+            portText1.setText(DataxJsonUtil.getDbDefaultPort(newValue));
+        });
+        dbTypeText2.valueProperty().addListener((observable, oldValue, newValue) -> {
+            portText2.setText(DataxJsonUtil.getDbDefaultPort(newValue));
+        });
+    }
+
+    private void addTableTreeViewMouseClicked(TreeView<String> tableTreeView) {
+        tableTreeView.setOnMouseClicked(event -> {
+            TreeItem<String> selectedItem = tableTreeView.getSelectionModel().getSelectedItem();
+            if (selectedItem == null) {
+                return;
+            }
+            if (event.getButton() == MouseButton.PRIMARY) {
+                selectedItem.setExpanded(!selectedItem.isExpanded());
+            } else if (event.getButton() == MouseButton.SECONDARY) {
+                MenuItem menu_UnfoldAll = new MenuItem("展开所有");
+                menu_UnfoldAll.setOnAction(event1 -> {
+                    tableTreeView.getRoot().setExpanded(true);
+                    tableTreeView.getRoot().getChildren().forEach(stringTreeItem -> {
+                        stringTreeItem.setExpanded(true);
+                    });
+                });
+                MenuItem menu_FoldAll = new MenuItem("折叠所有");
+                menu_FoldAll.setOnAction(event1 -> {
+                    tableTreeView.getRoot().getChildren().forEach(stringTreeItem -> {
+                        stringTreeItem.setExpanded(false);
+                    });
+                });
+                MenuItem menu_executeSql = new MenuItem("执行Sql");
+                menu_executeSql.setOnAction(event1 -> {
+                    entDataToolService.executeSql(tableTreeView);
+                });
+                ContextMenu contextMenu = new ContextMenu(menu_UnfoldAll, menu_FoldAll, menu_executeSql);
+                if ("源端库表".equals(selectedItem.getValue()) || "目标端库表".equals(selectedItem.getValue())) {
+                    MenuItem menu_copySelectSql = new MenuItem("一键复制查询语句");
+                    menu_copySelectSql.setOnAction(event1 -> {
+                        entDataToolService.copySelectSql(null, tableTreeView, false);
+                    });
+                    contextMenu.getItems().add(menu_copySelectSql);
+                    MenuItem menu_copySelectSqlMysql = new MenuItem("一键复制查询语句Mysql");
+                    menu_copySelectSqlMysql.setOnAction(event1 -> {
+                        entDataToolService.copySelectSql(null, tableTreeView, true);
+                    });
+                    contextMenu.getItems().add(menu_copySelectSqlMysql);
+                    MenuItem menu_selectTableCount = new MenuItem("一键查看表中数据量");
+                    menu_selectTableCount.setOnAction(event1 -> {
+                        entDataToolService.selectTableCount("*", tableTreeView);
+                    });
+                    contextMenu.getItems().add(menu_selectTableCount);
+                    MenuItem menu_DropTable = new MenuItem("一键Drop删除表结构");
+                    menu_DropTable.setOnAction(event1 -> {
+                        entDataToolService.dropTable("*", tableTreeView);
+                    });
+                    contextMenu.getItems().add(menu_DropTable);
+                    MenuItem menu_deleteTable = new MenuItem("一键delete删除表数据");
+                    menu_deleteTable.setOnAction(event1 -> {
+                        entDataToolService.deleteTableData("*", tableTreeView);
+                    });
+                    contextMenu.getItems().add(menu_deleteTable);
+                    MenuItem menu_TruncateTable = new MenuItem("一键truncate删除表数据");
+                    menu_TruncateTable.setOnAction(event1 -> {
+                        entDataToolService.truncateTableData("*", tableTreeView);
+                    });
+                    contextMenu.getItems().add(menu_TruncateTable);
+                } else {
+                    if ("源端库表".equals(selectedItem.getParent().getValue()) || "目标端库表".equals(selectedItem.getParent().getValue())) {
+                        MenuItem menu_copyTableName = new MenuItem("复制表名");
+                        menu_copyTableName.setOnAction(event1 -> {
+                            StringSelection selection = new StringSelection(selectedItem.getValue());
+                            // 获取系统剪切板，复制表名
+                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+                        });
+                        contextMenu.getItems().add(menu_copyTableName);
+                        MenuItem menu_copySelectSql = new MenuItem("复制查询语句");
+                        menu_copySelectSql.setOnAction(event1 -> {
+                            entDataToolService.copySelectSql((CheckBoxTreeItem<String>) selectedItem, tableTreeView, false);
+                        });
+                        contextMenu.getItems().add(menu_copySelectSql);
+                        MenuItem menu_copySelectSqlMysql = new MenuItem("复制查询语句mysql");
+                        menu_copySelectSqlMysql.setOnAction(event1 -> {
+                            entDataToolService.copySelectSql((CheckBoxTreeItem<String>) selectedItem, tableTreeView, true);
+                        });
+                        contextMenu.getItems().add(menu_copySelectSqlMysql);
+                        MenuItem menu_selectTableCount = new MenuItem("查看表中数据量");
+                        menu_selectTableCount.setOnAction(event1 -> {
+                            entDataToolService.selectTableCount(selectedItem.getValue(), tableTreeView);
+                        });
+                        contextMenu.getItems().add(menu_selectTableCount);
+                        MenuItem menu_ViewTable = new MenuItem("查看表内容");
+                        menu_ViewTable.setOnAction(event1 -> {
+                            entDataToolService.showTableData(selectedItem.getValue(), tableTreeView);
+                        });
+                        contextMenu.getItems().add(menu_ViewTable);
+                        MenuItem menu_DropTable = new MenuItem("Drop删除表结构");
+                        menu_DropTable.setOnAction(event1 -> {
+                            entDataToolService.dropTable(selectedItem.getValue(), tableTreeView);
+                        });
+                        contextMenu.getItems().add(menu_DropTable);
+                        MenuItem menu_deleteTable = new MenuItem("delete删除表数据");
+                        menu_deleteTable.setOnAction(event1 -> {
+                            entDataToolService.deleteTableData(selectedItem.getValue(), tableTreeView);
+                        });
+                        contextMenu.getItems().add(menu_deleteTable);
+                        MenuItem menu_TruncateTable = new MenuItem("truncate删除表数据");
+                        menu_TruncateTable.setOnAction(event1 -> {
+                            entDataToolService.truncateTableData(selectedItem.getValue(), tableTreeView);
+                        });
+                        contextMenu.getItems().add(menu_TruncateTable);
+                    } else {
+                        MenuItem menu_copyTableName = new MenuItem("复制字段名");
+                        menu_copyTableName.setOnAction(event1 -> {
+                            StringSelection selection = new StringSelection(selectedItem.getValue());
+                            // 获取系统剪切板，复制表名
+                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+                        });
+                        contextMenu.getItems().add(menu_copyTableName);
+                    }
+                }
+
+                tableTreeView.setContextMenu(contextMenu);
+            }
+        });
     }
 
     private void initService() {
@@ -115,34 +273,32 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
 
     @FXML
     private void connectAction1(ActionEvent event) {
-        try {
-            UrlDocumentDialogService.addConfig(hostText1.getText(), portText1.getText(), userNameText1.getText(), pwdText1.getText(), dbNameText1.getText(), dbTypeText1.getValue());
-            entDataToolService.connectAction(dbTypeText1.getValue(), hostText1.getText(), portText1.getText(), dbNameText1.getText(), userNameText1.getText(), pwdText1.getText(), tableTreeView1);
-        } catch (Exception e) {
-            log.error("连接失败：", e);
-            TooltipUtil.showToast("连接失败：" + e.getMessage());
-        }
+        masker.setVisible(true);
+        ThreadUtil.execute(() -> {
+            try {
+                UrlDocumentDialogService.addConfig(hostText1.getText(), portText1.getText(), userNameText1.getText(), pwdText1.getText(), dbNameText1.getText(), dbTypeText1.getValue());
+                entDataToolService.connectAction(dbTypeText1.getValue(), hostText1.getText(), portText1.getText(), dbNameText1.getText(), userNameText1.getText(), pwdText1.getText(), tableTreeView1);
+            } catch (Exception e) {
+                log.error("连接失败：", e);
+            } finally {
+                masker.setVisible(false);
+            }
+        });
     }
 
     @FXML
     private void connectAction2(ActionEvent event) {
-        try {
-            UrlDocumentDialogService.addConfig(hostText2.getText(), portText2.getText(), userNameText2.getText(), pwdText2.getText(), dbNameText2.getText(), dbTypeText2.getValue());
-            entDataToolService.connectAction(dbTypeText2.getValue(), hostText2.getText(), portText2.getText(), dbNameText2.getText(), userNameText2.getText(), pwdText2.getText(), tableTreeView2);
-        } catch (Exception e) {
-            log.error("连接失败：", e);
-            TooltipUtil.showToast("连接失败：" + e.getMessage());
-        }
-    }
-
-    @FXML
-    private void showSqlAction(ActionEvent event) {
-        try {
-            entDataToolService.showSqlAction();
-        } catch (Exception e) {
-            log.error("生成失败：", e);
-            TooltipUtil.showToast("生成失败：" + e.getMessage());
-        }
+        masker.setVisible(true);
+        ThreadUtil.execute(() -> {
+            try {
+                UrlDocumentDialogService.addConfig(hostText2.getText(), portText2.getText(), userNameText2.getText(), pwdText2.getText(), dbNameText2.getText(), dbTypeText2.getValue());
+                entDataToolService.connectAction(dbTypeText2.getValue(), hostText2.getText(), portText2.getText(), dbNameText2.getText(), userNameText2.getText(), pwdText2.getText(), tableTreeView2);
+            } catch (Exception e) {
+                log.error("连接失败：", e);
+            } finally {
+                masker.setVisible(false);
+            }
+        });
     }
 
     @FXML

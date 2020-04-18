@@ -3,6 +3,8 @@ package com.xwintop.xJavaFxTool.view.debugTools;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.StackPane;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,6 +24,8 @@ public abstract class RdbmsSyncToolView implements Initializable {
     @FXML
     protected PasswordField pwdText1;
     @FXML
+    protected TextField jdbcUrlField1;
+    @FXML
     protected Button connectButton1;
     @FXML
     protected TextField hostText2;
@@ -36,13 +40,13 @@ public abstract class RdbmsSyncToolView implements Initializable {
     @FXML
     protected PasswordField pwdText2;
     @FXML
+    protected TextField jdbcUrlField2;
+    @FXML
     protected Button connectButton2;
     @FXML
     protected TreeView<String> tableTreeView1;
     @FXML
     protected TreeView<String> tableTreeView2;
-    @FXML
-    protected Spinner<Integer> channelSpinner;
     @FXML
     protected Spinner<Integer> syncDataNumberSpinner;
     @FXML
@@ -51,4 +55,28 @@ public abstract class RdbmsSyncToolView implements Initializable {
     protected CheckBox isShowCheckBox;
     @FXML
     protected TextField querySqlTextField;
+    @FXML
+    protected ComboBox<String> jsonNameSuffixComboBox;
+    @FXML
+    protected ComboBox<String> outputPathComboBox;
+    @FXML
+    protected StackPane loadingStackPane;
+    @FXML
+    protected TextField schemaTextField;
+    @FXML
+    protected TextField ignoreTableNameTextField;
+    @FXML
+    protected TextField cronTextField;
+    @FXML
+    protected ChoiceBox<String> quartzChoiceBox;
+    @FXML
+    protected AnchorPane simpleScheduleAnchorPane;
+    @FXML
+    protected Spinner<Integer> intervalSpinner;
+    @FXML
+    protected Spinner<Integer> repeatCountSpinner;
+    @FXML
+    protected ChoiceBox<String> tableTypeChoiceBox;
+    @FXML
+    protected ChoiceBox<String> dataSourceTypeChoiceBox;
 }
