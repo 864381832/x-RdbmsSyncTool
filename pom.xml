@@ -114,7 +114,7 @@
 					<encoding>utf-8</encoding>
 					<archive>
 						<manifest>
-							<mainClass>com.xwintop.xJavaFxTool.EntDataToolMain</mainClass>
+							<mainClass>com.xwintop.xJavaFxTool.RdbmsSyncToolMain</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
