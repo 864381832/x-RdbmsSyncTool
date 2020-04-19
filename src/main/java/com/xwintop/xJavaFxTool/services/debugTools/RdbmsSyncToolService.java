@@ -1,5 +1,6 @@
 package com.xwintop.xJavaFxTool.services.debugTools;
 
+import cn.hutool.core.swing.clipboard.ClipboardUtil;
 import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
 import cn.hutool.db.ds.simple.SimpleDataSource;
@@ -8,7 +9,6 @@ import cn.hutool.db.meta.MetaUtil;
 import cn.hutool.db.meta.Table;
 import cn.hutool.db.meta.TableType;
 import com.alibaba.druid.util.JdbcUtils;
-import com.alibaba.fastjson.JSONObject;
 import com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController;
 import com.xwintop.xJavaFxTool.tools.DataxJsonUtil;
 import com.xwintop.xJavaFxTool.tools.SqlUtil;
@@ -18,7 +18,6 @@ import com.xwintop.xcore.util.javafx.JavaFxViewUtil;
 import com.xwintop.xcore.util.javafx.TooltipUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import lombok.Getter;
@@ -26,17 +25,16 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
-import java.awt.*;
-import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
-import java.util.List;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Getter
@@ -74,6 +72,9 @@ public class RdbmsSyncToolService {
                     if ("sqlserver".equals(dbType) || "sqlserverold".equals(dbType)) {
                         tableNames = SqlUtil.showSqlServerTables(connection, dbType);
                     } else {
+                        if ("oracleSid".equals(dbType)) {
+                            dbType = "oracle";
+                        }
                         tableNames = JdbcUtils.showTables(connection, dbType);
                     }
                 } finally {
@@ -128,7 +129,10 @@ public class RdbmsSyncToolService {
                         if (table.getPkNames().contains(column.getName())) {
                             isPkCheckBox.setSelected(true);
                         }
-                        final CheckBoxTreeItem<String> columnNameTreeItem = new CheckBoxTreeItem<>(column.getName(), isPkCheckBox);
+                        CheckBox isTimeCheckBox = new CheckBox("Time");
+                        HBox hBox = new HBox();
+                        hBox.getChildren().addAll(isPkCheckBox, isTimeCheckBox);
+                        final CheckBoxTreeItem<String> columnNameTreeItem = new CheckBoxTreeItem<>(column.getName(), hBox);
                         tableNameTreeItem.getChildren().add(columnNameTreeItem);
                     }
                     treeItem.getChildren().add(tableNameTreeItem);
@@ -142,18 +146,6 @@ public class RdbmsSyncToolService {
                 dataSource.getConnection().close();
             }
         }
-    }
-
-    public void buildCloneAction() throws Exception {
-    }
-
-    public void buildStandardAction() throws Exception {
-    }
-
-    public void buildDbToCsvAction() throws Exception {
-    }
-
-    public void buildCsvToDbAction() throws Exception {
     }
 
     public List<CheckBoxTreeItem<String>> getCheckBoxTreeItemList() {
@@ -207,16 +199,7 @@ public class RdbmsSyncToolService {
         return tableInfoMap;
     }
 
-    public void buildQuerySqlAction() throws Exception {
-    }
-
-    public void buildTaskConfigClient(JSONObject jsonObject, String where, String taskName, String fileName) throws Exception {
-    }
-
-    public void buildCsvToGatewayAction(int type) throws Exception {
-    }
-
-    public void showSqlAction(String dbType) throws Exception {
+    public void showSqlAction(String dbType) {
         List<CheckBoxTreeItem<String>> checkBoxTreeItemList = getCheckBoxTreeItemList();
         if (checkBoxTreeItemList.isEmpty()) {
             TooltipUtil.showToast("未勾选表！");
@@ -236,8 +219,7 @@ public class RdbmsSyncToolService {
                 for (Column column : table.getColumns()) {
                     tableString.append("   `").append(column.getName()).append("` ")//cln name
                             .append(DataxJsonUtil.getTableColumnType(column.getType(), column.getSize()))//类型
-//                        .append(" " + (column.isNullable() ? "NULL" : "NOT NULL"))//是否非空
-                            .append(" NULL")//是否非空
+                            .append(" " + (column.isNullable() ? "NULL" : "NOT NULL"))//是否非空
                             //`import_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '数据插入时间'
 //                        .append(clnName.equals("import_time") ? " DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" : "")
 //                        .append(clnName.equals("id") ? " AUTO_INCREMENT" : "")
@@ -278,10 +260,15 @@ public class RdbmsSyncToolService {
                 JavaFxViewUtil.openNewWindow(fileName, textArea);
             } else {
                 String outputPath = StringUtils.defaultIfBlank(rdbmsSyncToolController.getOutputPathComboBox().getValue(), "./executor");
-                File jsonFile = new File(outputPath, fileName);
-                FileUtils.writeStringToFile(jsonFile, tableString.toString(), "utf-8");
-                log.info("生成成功:" + jsonFile.getCanonicalPath());
-                TooltipUtil.showToast("生成成功:" + jsonFile.getCanonicalPath());
+                try {
+                    File jsonFile = new File(outputPath, fileName);
+                    FileUtils.writeStringToFile(jsonFile, tableString.toString(), "utf-8");
+                    log.info("生成成功:" + jsonFile.getCanonicalPath());
+                    TooltipUtil.showToast("生成成功:" + jsonFile.getCanonicalPath());
+                } catch (Exception e) {
+                    log.error("生成失败：", e);
+                    TooltipUtil.showToast("生成失败:" + e.getMessage());
+                }
             }
         }
     }
@@ -314,35 +301,50 @@ public class RdbmsSyncToolService {
         SimpleDataSource dataSource1 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView1());
         SimpleDataSource dataSource2 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView2());
         String[] columnList = (String[]) tableInfoMap.get("columnList");
-        Entity entity1 = Entity.create(tableName);
-        entity1.addFieldNames(columnList);
+        String[] columnList2 = (String[]) tableInfoMap2.get("columnList");
+        AtomicInteger dataNumber = new AtomicInteger();
         try {
-            List<Entity> entityList = null;
-            if (rdbmsSyncToolController.getSyncDataNumberSpinner().getValue() == -1) {
-                entityList = Db.use(dataSource1).findAll(tableName);
+            String querySql = null;
+            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getQuerySqlTextField().getText())) {
+                querySql = rdbmsSyncToolController.getQuerySqlTextField().getText();
             } else {
-                entityList = Db.use(dataSource1).pageForEntityList(Entity.create(tableName), 0, rdbmsSyncToolController.getSyncDataNumberSpinner().getValue());
-            }
-            Db db = Db.use(dataSource2);
-            for (Entity entity : entityList) {
-//                Entity entity2 = Entity.create(tableName2);
-                String[] columnList2 = (String[]) tableInfoMap2.get("columnList");
-                Object[] parameters = new Object[columnList2.length];
-                List<String> valueHolders = new ArrayList<>(columnList2.length);
-                for (int i = 0; i < columnList2.length; i++) {
-//                    entity2.set(columnList2[i], entity.get(columnList[i]));
-                    parameters[i] = entity.get(columnList[i]);
-                    valueHolders.add("?");
+                if (columnList.length != columnList2.length) {
+                    TooltipUtil.showToast("两端表勾选列数量不一致！左边：" + columnList.length + " 右边：" + columnList2.length);
+                    return;
                 }
-//                db.insert(entity2);
-                String sql = "INSERT INTO " + tableName2 + " (" + StringUtils.join(columnList2, ",") + ") VALUES(" + StringUtils.join(valueHolders, ",") + ")";
-                JdbcUtils.executeUpdate(dataSource2, sql, parameters);
+                querySql = String.format("select %s from %s ", String.join(",", columnList), tableName);
+            }
+            String insertSql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName2, String.join(",", columnList2), StringUtils.repeat("?", ",", columnList2.length));
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource1);
+            List batchUpdateData = new ArrayList();
+            jdbcTemplate.query(querySql, rs -> {
+                while (rs.next()) {
+                    Object[] dataObjects = new Object[columnList2.length];
+                    for (int i = 0; i < columnList2.length; i++) {
+                        dataObjects[i] = rs.getObject(i + 1);
+                    }
+                    dataNumber.getAndIncrement();
+                    batchUpdateData.add(dataObjects);
+                    if (rs.getRow() % 1000 == 0) {
+                        jdbcTemplate.batchUpdate(insertSql, batchUpdateData);
+                        batchUpdateData.clear();
+                    }
+                    if (rdbmsSyncToolController.getSyncDataNumberSpinner().getValue() != -1) {
+                        if (rs.getRow() >= rdbmsSyncToolController.getSyncDataNumberSpinner().getValue()) {
+                            break;
+                        }
+                    }
+                }
+                return null;
+            });
+            if (!batchUpdateData.isEmpty()) {
+                jdbcTemplate.batchUpdate(insertSql, batchUpdateData);
             }
         } finally {
             JdbcUtils.close(dataSource1);
             JdbcUtils.close(dataSource2);
         }
-        TooltipUtil.showToast("生成测试同步数据完成");
+        TooltipUtil.showToast("生成测试同步数据完成,数量：" + dataNumber.get());
     }
 
     public void showTableData(String tableName, TreeView<String> tableTreeView) {
@@ -401,18 +403,11 @@ public class RdbmsSyncToolService {
                 String selectSql = SqlUtil.createrSelectSql(this, tableNameTreeItem, tableNameTreeItem.getValue(), isMysql);
                 stringBuffer.append(selectSql).append(";\n");
             }
-            StringSelection selection = new StringSelection(stringBuffer.toString());
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+            ClipboardUtil.setStr(stringBuffer.toString());
             TooltipUtil.showToast("复制查询语句成功！" + stringBuffer.toString());
         } else {
-            if (!selectedItem.isSelected()) {
-                TooltipUtil.showToast("未勾选表！");
-                return;
-            }
             String selectSql = SqlUtil.createrSelectSql(this, selectedItem, selectedItem.getValue(), isMysql);
-            StringSelection selection = new StringSelection(selectSql);
-            // 获取系统剪切板，复制表名
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+            ClipboardUtil.setStr(selectSql);
             TooltipUtil.showToast("复制查询语句成功！" + selectSql);
         }
     }
@@ -539,40 +534,7 @@ public class RdbmsSyncToolService {
             TooltipUtil.showToast("执行sql不能为空");
             return;
         }
-//        List<String> sqlList = new ArrayList<String>();
-        // Windows 下换行是 /r/n, Linux 下是 /n
-//        String[] sqlArr = sqlSb.split("(;//s*//r//n)|(;//s*//n)");
-//        for (int i = 0; i < sqlArr.length; i++) {
-//            String sql = sqlArr[i].replaceAll("--.*", "").trim();
-//            if (!sql.equals("")) {
-//                sqlList.add(sql);
-//            }
-//        }
         SqlUtil.executeSql(rdbmsSyncToolController, tableTreeView, sqlSb);
-    }
-
-    public void showCreateUserSqlAction() throws Exception {
-        List<CheckBoxTreeItem<String>> checkBoxTreeItemList = getCheckBoxTreeItemList();
-        if (checkBoxTreeItemList.isEmpty()) {
-            TooltipUtil.showToast("未勾选表！");
-            return;
-        }
-        for (CheckBoxTreeItem<String> tableNameTreeItem : checkBoxTreeItemList) {
-            String tableName = tableNameTreeItem.getValue();
-            String tableString = SqlUtil.createUserSql(rdbmsSyncToolController, tableName);
-            String fileName = tableName + "_createUser.sql";
-            if (rdbmsSyncToolController.getIsShowCheckBox().isSelected()) {
-                TextArea textArea = new TextArea(tableString.toString());
-                textArea.setWrapText(true);
-                JavaFxViewUtil.openNewWindow(fileName, textArea);
-            } else {
-                String outputPath = StringUtils.defaultIfBlank(rdbmsSyncToolController.getOutputPathComboBox().getValue(), "./executor");
-                File jsonFile = new File(outputPath, fileName);
-                FileUtils.writeStringToFile(jsonFile, tableString.toString(), "utf-8");
-                log.info("生成成功:" + jsonFile.getCanonicalPath());
-                TooltipUtil.showToast("生成成功:" + jsonFile.getCanonicalPath());
-            }
-        }
     }
 
     public List<String> getSelectTableNameList(TreeView<String> tableTreeView) {

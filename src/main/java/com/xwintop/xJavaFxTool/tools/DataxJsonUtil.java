@@ -1,16 +1,17 @@
 package com.xwintop.xJavaFxTool.tools;
 
-import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
 
-import java.sql.Timestamp;
 import java.sql.Types;
 
+@Slf4j
 public class DataxJsonUtil {
     public static String getDbDefaultPort(String DB_TYPE) {
         if ("sqlserverold".equalsIgnoreCase(DB_TYPE)) {
             DB_TYPE = "sqlserver";
+        } else if ("oracleSid".equalsIgnoreCase(DB_TYPE)) {
+            DB_TYPE = "oracle";
         }
         if ("sqlserver".equalsIgnoreCase(DB_TYPE)) {
             return "1433";
@@ -35,27 +36,33 @@ public class DataxJsonUtil {
         }
         if ("sqlserver".equalsIgnoreCase(DB_TYPE)) {
             //jdbc:sqlserver://localhost:3433;DatabaseName=dbname
-            jdbcUrl = "jdbc:sqlserver://" + dbIp + ":" + dbPort + ";DatabaseName=" + dbName;
+            jdbcUrl = String.format("jdbc:sqlserver://%s:%s;DatabaseName=%s", dbIp, dbPort, dbName);
         } else if ("oracle".equalsIgnoreCase(DB_TYPE)) {
             //jdbc:oracle:thin:@[HOST_NAME]:PORT:[DATABASE_NAME]
-            jdbcUrl = "jdbc:oracle:thin:@" + dbIp + ":" + dbPort + "/" + dbName;
+            jdbcUrl = String.format("jdbc:oracle:thin:@%s:%s/%s", dbIp, dbPort, dbName);
+        } else if ("oracleSid".equalsIgnoreCase(DB_TYPE)) {
+            //jdbc:oracle:thin:@[HOST_NAME]:PORT:[DATABASE_NAME]
+            jdbcUrl = String.format("jdbc:oracle:thin:@%s:%s:%s", dbIp, dbPort, dbName);
         } else if ("mysql".equalsIgnoreCase(DB_TYPE)) {
             //jdbc:mysql://bad_ip:3306/database
-            jdbcUrl = "jdbc:mysql://" + dbIp + ":" + dbPort + "/" + dbName + "?characterEncoding=utf8";
+            jdbcUrl = String.format("jdbc:mysql://%s:%s/%s?characterEncoding=utf8", dbIp, dbPort, dbName);
         } else if ("postgresql".equalsIgnoreCase(DB_TYPE)) {
-            //jdbc:mysql://bad_ip:3306/database
-            jdbcUrl = "jdbc:postgresql://" + dbIp + ":" + dbPort + "/" + dbName;
+            jdbcUrl = String.format("jdbc:postgresql://%s:%s/%s", dbIp, dbPort, dbName);
         } else if ("sqlserverold".equalsIgnoreCase(DB_TYPE)) {
-            //jdbc:jtds:sqlserver://127.0.0.1:1433;datebaseName=test
-            jdbcUrl = "jdbc:jtds:sqlserver://" + dbIp + ":" + dbPort + "/" + dbName;
+            jdbcUrl = String.format("jdbc:jtds:sqlserver://%s:%s/%s", dbIp, dbPort, dbName);
         } else if ("dm".equalsIgnoreCase(DB_TYPE)) {
-            //jdbc:jtds:sqlserver://127.0.0.1:1433;datebaseName=test
-            jdbcUrl = "jdbc:dm://" + dbIp + ":" + dbPort + "/" + dbName;
+            jdbcUrl = String.format("jdbc:dm://%s:%s/%s", dbIp, dbPort, dbName);
         }
+        log.info("解析出jdbcUrl: " + jdbcUrl);
         return jdbcUrl;
     }
 
     public static String convertDatabaseCharsetType(String userName, String schema, String type) {
+        if ("sqlserverold".equalsIgnoreCase(type)) {
+            type = "sqlserver";
+        } else if ("oracleSid".equalsIgnoreCase(type)) {
+            type = "oracle";
+        }
         String dbUser;
         if (type.equals("oracle")) {
             dbUser = StringUtils.defaultIfBlank(schema, userName).toUpperCase();

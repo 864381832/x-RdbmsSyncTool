@@ -152,7 +152,7 @@
                                     <Tooltip text="测试同步数据时的数据量（-1为所有）" />
                                  </tooltip>
                               </Spinner>
-                              <Button mnemonicParsing="false" onAction="#testInstertSqlAction" text="测试同步数据">
+                              <Button mnemonicParsing="false" onAction="#testInstertSqlAction" text="同步数据">
                                  <tooltip>
                                     <Tooltip text="勾选两边的表可将左边表的数据同步至右边（默认100条）" />
                                  </tooltip>

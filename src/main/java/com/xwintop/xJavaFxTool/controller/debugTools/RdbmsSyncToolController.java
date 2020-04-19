@@ -1,5 +1,6 @@
 package com.xwintop.xJavaFxTool.controller.debugTools;
 
+import cn.hutool.core.swing.clipboard.ClipboardUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import com.xwintop.xJavaFxTool.services.debugTools.RdbmsSyncToolService;
 import com.xwintop.xJavaFxTool.services.debugTools.UrlDocumentDialogService;
@@ -10,8 +11,6 @@ import com.xwintop.xcore.util.javafx.TooltipUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTreeCell;
 import javafx.scene.input.MouseButton;
@@ -20,8 +19,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.MaskerPane;
 
-import java.awt.*;
-import java.awt.datatransfer.StringSelection;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +30,7 @@ import java.util.ResourceBundle;
 public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private RdbmsSyncToolService entDataToolService = new RdbmsSyncToolService(this);
     private ContextMenu contextMenu = new ContextMenu();
-    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "postgresql", "sqlserver", "sqlserverold", "dm"};
+    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm"};
     private String[] jsonNameSuffixStrings = new String[]{".json"};
     private String[] outputPathStrings = new String[]{"./executor"};
     private String[] quartzChoiceBoxStrings = new String[]{"SIMPLE", "CRON"};
@@ -145,6 +142,16 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                         entDataToolService.copySelectSql(null, tableTreeView, true);
                     });
                     contextMenu.getItems().add(menu_copySelectSqlMysql);
+                    MenuItem menu_copyCreateTableSqlMysql = new MenuItem("一键生成建表语句Mysql");
+                    menu_copyCreateTableSqlMysql.setOnAction(event1 -> {
+                        entDataToolService.showSqlAction("mysql");
+                    });
+                    contextMenu.getItems().add(menu_copyCreateTableSqlMysql);
+                    MenuItem menu_copyCreateTableSqlOracle = new MenuItem("一键生成建表语句Oracle");
+                    menu_copyCreateTableSqlOracle.setOnAction(event1 -> {
+                        entDataToolService.showSqlAction("oracle");
+                    });
+                    contextMenu.getItems().add(menu_copyCreateTableSqlOracle);
                     MenuItem menu_selectTableCount = new MenuItem("一键查看表中数据量");
                     menu_selectTableCount.setOnAction(event1 -> {
                         entDataToolService.selectTableCount("*", tableTreeView);
@@ -169,9 +176,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                     if ("源端库表".equals(selectedItem.getParent().getValue()) || "目标端库表".equals(selectedItem.getParent().getValue())) {
                         MenuItem menu_copyTableName = new MenuItem("复制表名");
                         menu_copyTableName.setOnAction(event1 -> {
-                            StringSelection selection = new StringSelection(selectedItem.getValue());
-                            // 获取系统剪切板，复制表名
-                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+                            ClipboardUtil.setStr(selectedItem.getValue());
                         });
                         contextMenu.getItems().add(menu_copyTableName);
                         MenuItem menu_copySelectSql = new MenuItem("复制查询语句");
@@ -212,9 +217,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                     } else {
                         MenuItem menu_copyTableName = new MenuItem("复制字段名");
                         menu_copyTableName.setOnAction(event1 -> {
-                            StringSelection selection = new StringSelection(selectedItem.getValue());
-                            // 获取系统剪切板，复制表名
-                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+                            ClipboardUtil.setStr(selectedItem.getValue());
                         });
                         contextMenu.getItems().add(menu_copyTableName);
                     }

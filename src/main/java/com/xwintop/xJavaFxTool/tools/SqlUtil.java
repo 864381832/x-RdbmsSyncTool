@@ -146,12 +146,4 @@ public class SqlUtil {
         stringBuffer.append(" FROM ").append(tableName);
         return stringBuffer.toString();
     }
-
-    public static String createUserSql(RdbmsSyncToolController rdbmsSyncToolController, String tableName) {
-        StringBuffer tableString = new StringBuffer();
-        tableString.append("--2-1. 新增数据类别目标表（只插入一次，如果有了就不用插入了）\n" +
-                "Insert into DATAEX_CATAGORY\n" +
-                "AND NOT EXISTS (SELECT 1 FROM DATAEX_JOB_ITEM_MAP D WHERE A.JOB_KEY=D.FK_JOB_KEY AND B.CATAGORY_ITEM_KEY=D.FK_CATAGORY_ITEM_KEY_SRC AND C.CATAGORY_ITEM_KEY=D.FK_CATAGORY_ITEM_KEY_TGT);\n\n");
-        return tableString.toString();
-    }
 }
