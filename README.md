@@ -5,6 +5,8 @@ RdbmsSyncTool 关系型数据库同步工具
 #### 项目简介：
 RdbmsSyncTool是使用javaFx开发的关系型数据库同步工具[xJavaFxTool](https://gitee.com/xwintop/xJavaFxTool)的插件集合，可实现打包后让框架自动加载，可在线下载和更新工具，后续小工具将在这个项目中添加，实现动态jar包加载。
 
+目前支持的数据库类型有
+
 #### 环境搭建说明：
 - 开发环境为jdk1.8，基于maven构建
 - 使用eclipase或Intellij Idea开发(推荐使用[Intellij Idea](https://www.jetbrains.com/idea/))
@@ -19,5 +21,6 @@ RdbmsSyncTool是使用javaFx开发的关系型数据库同步工具[xJavaFxTool]
 - 1.0.0  20200419
   1. 完成基本功能配置（对表进行查询、删除、建表语句、同步数据等操作）
   2. 支持mysql、Oracle、sqlserver、PostgreSql、达梦等数据库连接
-- 1.0.1  202004**
+- 1.0.1  20200421
   1. 添加sqlite、h2、access数据库支持
+  2. 优化数据同步功能

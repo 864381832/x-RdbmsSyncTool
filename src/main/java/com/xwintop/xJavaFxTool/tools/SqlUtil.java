@@ -9,7 +9,11 @@ import com.xwintop.xcore.util.javafx.TooltipUtil;
 import javafx.scene.control.CheckBoxTreeItem;
 import javafx.scene.control.TreeView;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -17,8 +21,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class SqlUtil {
@@ -154,5 +160,26 @@ public class SqlUtil {
         stringBuffer.deleteCharAt(stringBuffer.length() - 1);
         stringBuffer.append(" FROM ").append(tableName);
         return stringBuffer.toString();
+    }
+
+    public static void doBatchInsert(String sql, List<Object[]> batchUpdateData, JdbcTemplate jdbcTemplate, AtomicInteger dirtyDataNumber) {
+        DefaultTransactionDefinition transactionDefinition = new DefaultTransactionDefinition();
+        DataSourceTransactionManager dm = new DataSourceTransactionManager(jdbcTemplate.getDataSource());
+        TransactionStatus tmp = dm.getTransaction(transactionDefinition);
+        try {
+            jdbcTemplate.batchUpdate(sql, batchUpdateData);
+            dm.commit(tmp);
+        } catch (Exception e) {
+            dm.rollback(tmp);
+            log.warn("回滚此次写入, 采用每次写入一行方式提交. 因为:" + e.getMessage());
+            for (Object[] batchUpdateDatum : batchUpdateData) {
+                try {
+                    jdbcTemplate.update(sql, batchUpdateDatum);
+                } catch (Exception e1) {
+                    log.error(" 脏数据: " + Arrays.toString(batchUpdateDatum), e1.getMessage());
+                    dirtyDataNumber.getAndIncrement();
+                }
+            }
+        }
     }
 }

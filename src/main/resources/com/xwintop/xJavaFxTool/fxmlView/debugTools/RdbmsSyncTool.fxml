@@ -48,7 +48,7 @@
                                     <PasswordField fx:id="pwdText1" text="" />
                                  </children>
                               </StackPane>
-                              <TextField fx:id="jdbcUrlField1" promptText="jdbcUrl">
+                              <TextField fx:id="jdbcUrlField1" promptText="jdbcUrl" disable="true">
                                  <tooltip>
                                     <Tooltip text="jdbc:mysql://127.0.0.1:3306/test   jdbc:sqlserver://127.0.0.1:1433;DatabaseName=test    jdbc:oracle:thin:@127.0.0.1:1521/test    jdbc:postgresql://127.0.0.1:5432/test" />
                                  </tooltip></TextField>
@@ -74,7 +74,7 @@
                                     <PasswordField fx:id="pwdText2" text="easipass" />
                                  </children>
                               </StackPane>
-                              <TextField fx:id="jdbcUrlField2" promptText="jdbcUrl">
+                              <TextField fx:id="jdbcUrlField2" promptText="jdbcUrl" disable="true">
                                  <tooltip>
                                     <Tooltip text="jdbc:oracle:thin:@127.0.0.1:1521/test    jdbc:postgresql://127.0.0.1:5432/test" />
                                  </tooltip></TextField>
