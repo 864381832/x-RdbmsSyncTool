@@ -18,9 +18,9 @@ RdbmsSyncTool是使用javaFx开发的关系型数据库同步工具[xJavaFxTool]
 ![数据库同步工具.png](images/数据库同步工具.png)
 
 #### 版本记录
-- 1.0.0  20200419
+- 0.0.1  20200419
   1. 完成基本功能配置（对表进行查询、删除、建表语句、同步数据等操作）
   2. 支持mysql、Oracle、sqlserver、PostgreSql、达梦等数据库连接
-- 1.0.1  20200421
+- 0.0.2  20200421
   1. 添加sqlite、h2、access数据库支持
   2. 优化数据同步功能
