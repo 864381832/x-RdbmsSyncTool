@@ -104,27 +104,45 @@ public class SqlUtil {
         }
     }
 
-    public static List<String> showSqlServerTables(Connection conn, String dbType) throws SQLException {
-        List<String> tables = new ArrayList<String>();
-        Statement stmt = null;
-        ResultSet rs = null;
-        try {
-            stmt = conn.createStatement();
-            if ("sqlserver".equals(dbType)) {
-                rs = stmt.executeQuery("select c.name from sys.objects c where c.type='u'");
-            } else if ("sqlserverold".equals(dbType)) {
-                rs = stmt.executeQuery("select c.name from sysobjects c where c.type='u'");
-            } else if ("access".equals(dbType)) {
-                rs = stmt.executeQuery("select table_name from information_schema.tables");
-            }
-            while (rs.next()) {
-                String tableName = rs.getString(1);
-                tables.add(tableName);
-            }
-        } finally {
-            JdbcUtils.close(rs);
-            JdbcUtils.close(stmt);
+//    public static List<String> showSqlServerTables(Connection conn, String dbType) throws SQLException {
+//        List<String> tables = new ArrayList<String>();
+//        Statement stmt = null;
+//        ResultSet rs = null;
+//        try {
+//            stmt = conn.createStatement();
+//            if ("sqlserver".equals(dbType)) {
+//                rs = stmt.executeQuery("select c.name from sys.objects c where c.type='u'");
+//            } else if ("sqlserverold".equals(dbType)) {
+//                rs = stmt.executeQuery("select c.name from sysobjects c where c.type='u'");
+//            } else if ("access".equals(dbType)) {
+//                rs = stmt.executeQuery("select table_name from information_schema.tables");
+//            } else {
+//                return tables;
+//            }
+//            while (rs.next()) {
+//                String tableName = rs.getString(1);
+//                tables.add(tableName);
+//            }
+//        } finally {
+//            JdbcUtils.close(rs);
+//            JdbcUtils.close(stmt);
+//        }
+//        return tables;
+//    }
+
+    public static List<String> showSqlServerTables(DataSource dataSource, String dbType) throws SQLException {
+        List<String> tables = new ArrayList<>();
+        String sql = "";
+        if ("sqlserver".equals(dbType)) {
+            sql = "select c.name from sys.objects c where c.type='u'";
+        } else if ("sqlserverold".equals(dbType)) {
+            sql = "select c.name from sysobjects c where c.type='u'";
+        } else if ("access".equals(dbType)) {
+            sql = "select table_name from information_schema.tables";
+        } else {
+            return tables;
         }
+        tables = new JdbcTemplate(dataSource).queryForList(sql, String.class);
         return tables;
     }
 
