@@ -25,6 +25,9 @@ public class SqlUtil {
     public static DruidDataSource getDruidDataSource(String dbType, String dbIp, String dbPort, String dbName, String dbUserName, String dbUserPassword, String jdbcUrl) {
         DruidDataSource dataSource = new DruidDataSource();
         dataSource.setUrl(DataxJsonUtil.getJdbcUrl(jdbcUrl, dbType, dbIp, dbPort, dbName));
+        if ("access".equals(dbType)) {
+            dataSource.setDriverClassName("net.ucanaccess.jdbc.UcanaccessDriver");
+        }
         dataSource.setUsername(dbUserName);
         dataSource.setPassword(dbUserPassword);
         dataSource.setTestWhileIdle(false);
@@ -48,7 +51,11 @@ public class SqlUtil {
         jdbcUrl = DataxJsonUtil.getJdbcUrl(jdbcUrl, dbType, dbIp, dbPort, dbName);
         String driver = null;
         try {
-            driver = JdbcUtils.getDriverClassName(jdbcUrl);
+            if ("access".equals(dbType)) {
+                driver = "net.ucanaccess.jdbc.UcanaccessDriver";
+            } else {
+                driver = JdbcUtils.getDriverClassName(jdbcUrl);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -56,8 +63,8 @@ public class SqlUtil {
         return dataSource;
     }
 
-    public static SimpleDataSource getDataSourceByViewType(RdbmsSyncToolController rdbmsSyncToolController, TreeView<String> tableTreeView) {
-        SimpleDataSource dataSource = null;
+    public static DataSource getDataSourceByViewType(RdbmsSyncToolController rdbmsSyncToolController, TreeView<String> tableTreeView) {
+        DataSource dataSource = null;
         if (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) {
             String dbType = rdbmsSyncToolController.getDbTypeText1().getValue();
             String dbIp = rdbmsSyncToolController.getHostText1().getText();
@@ -65,7 +72,7 @@ public class SqlUtil {
             String dbName = rdbmsSyncToolController.getDbNameText1().getText();
             String dbUserName = rdbmsSyncToolController.getUserNameText1().getText();
             String dbUserPassword = rdbmsSyncToolController.getPwdText1().getText();
-            dataSource = SqlUtil.getSimpleDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, rdbmsSyncToolController.getJdbcUrlField1().getText());
+            dataSource = SqlUtil.getDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, rdbmsSyncToolController.getJdbcUrlField1().getText(), rdbmsSyncToolController.getDataSourceTypeChoiceBox().getValue());
         } else if (tableTreeView == rdbmsSyncToolController.getTableTreeView2()) {
             String dbType2 = rdbmsSyncToolController.getDbTypeText2().getValue();
             String dbIp2 = rdbmsSyncToolController.getHostText2().getText();
@@ -73,13 +80,13 @@ public class SqlUtil {
             String dbName2 = rdbmsSyncToolController.getDbNameText2().getText();
             String dbUserName2 = rdbmsSyncToolController.getUserNameText2().getText();
             String dbUserPassword2 = rdbmsSyncToolController.getPwdText2().getText();
-            dataSource = SqlUtil.getSimpleDataSource(dbType2, dbIp2, dbPort2, dbName2, dbUserName2, dbUserPassword2, rdbmsSyncToolController.getJdbcUrlField2().getText());
+            dataSource = SqlUtil.getDataSource(dbType2, dbIp2, dbPort2, dbName2, dbUserName2, dbUserPassword2, rdbmsSyncToolController.getJdbcUrlField2().getText(), rdbmsSyncToolController.getDataSourceTypeChoiceBox().getValue());
         }
         return dataSource;
     }
 
     public static void executeSql(RdbmsSyncToolController rdbmsSyncToolController, TreeView<String> tableTreeView, String sql) {
-        SimpleDataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
+        DataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
         try {
             JdbcUtils.execute(dataSource, sql);
             TooltipUtil.showToast("执行sql成功：" + sql);
@@ -87,7 +94,7 @@ public class SqlUtil {
             log.error("executeSql:" + sql + " 错误：", e);
             TooltipUtil.showToast("executeSql:" + sql + " 错误：" + e.getMessage());
         } finally {
-            JdbcUtils.close(dataSource);
+//            JdbcUtils.close(dataSource);
         }
     }
 
@@ -101,6 +108,8 @@ public class SqlUtil {
                 rs = stmt.executeQuery("select c.name from sys.objects c where c.type='u'");
             } else if ("sqlserverold".equals(dbType)) {
                 rs = stmt.executeQuery("select c.name from sysobjects c where c.type='u'");
+            } else if ("access".equals(dbType)) {
+                rs = stmt.executeQuery("select table_name from information_schema.tables");
             }
             while (rs.next()) {
                 String tableName = rs.getString(1);
@@ -114,7 +123,7 @@ public class SqlUtil {
     }
 
     public static List<Map<String, Object>> executeQuerySql(RdbmsSyncToolController rdbmsSyncToolController, TreeView<String> tableTreeView, String sql) {
-        SimpleDataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
+        DataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
         try {
             List<Map<String, Object>> queryData = JdbcUtils.executeQuery(dataSource, sql);
             TooltipUtil.showToast("执行QuerySql成功：" + sql);
@@ -123,7 +132,7 @@ public class SqlUtil {
             log.error("executeQuerySql:" + sql + " 错误：", e);
             TooltipUtil.showToast("executeQuerySql:" + sql + " 错误：" + e.getMessage());
         } finally {
-            JdbcUtils.close(dataSource);
+//            JdbcUtils.close(dataSource);
         }
         return null;
     }

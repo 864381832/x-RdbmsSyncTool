@@ -3,7 +3,6 @@ package com.xwintop.xJavaFxTool.services.debugTools;
 import cn.hutool.core.swing.clipboard.ClipboardUtil;
 import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
-import cn.hutool.db.ds.simple.SimpleDataSource;
 import cn.hutool.db.meta.Column;
 import cn.hutool.db.meta.MetaUtil;
 import cn.hutool.db.meta.Table;
@@ -69,7 +68,7 @@ public class RdbmsSyncToolService {
                 log.error("getTables is error!尝试使用sql语句获取", e);
                 Connection connection = dataSource.getConnection();
                 try {
-                    if ("sqlserver".equals(dbType) || "sqlserverold".equals(dbType)) {
+                    if ("sqlserver".equals(dbType) || "sqlserverold".equals(dbType) || "access".equals(dbType)) {
                         tableNames = SqlUtil.showSqlServerTables(connection, dbType);
                     } else {
                         if ("oracleSid".equals(dbType)) {
@@ -298,8 +297,8 @@ public class RdbmsSyncToolService {
         Map tableInfoMap2 = getTableInfoMap(tableNameTreeItem2.getChildren());
         String tableName = tableNameTreeItem.getValue();
         String tableName2 = tableNameTreeItem2.getValue();
-        SimpleDataSource dataSource1 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView1());
-        SimpleDataSource dataSource2 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView2());
+        DataSource dataSource1 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView1());
+        DataSource dataSource2 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView2());
         String[] columnList = (String[]) tableInfoMap.get("columnList");
         String[] columnList2 = (String[]) tableInfoMap2.get("columnList");
         AtomicInteger dataNumber = new AtomicInteger();
@@ -316,6 +315,7 @@ public class RdbmsSyncToolService {
             }
             String insertSql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName2, String.join(",", columnList2), StringUtils.repeat("?", ",", columnList2.length));
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource1);
+            JdbcTemplate jdbcTemplate2 = new JdbcTemplate(dataSource2);
             List batchUpdateData = new ArrayList();
             jdbcTemplate.query(querySql, rs -> {
                 while (rs.next()) {
@@ -326,7 +326,7 @@ public class RdbmsSyncToolService {
                     dataNumber.getAndIncrement();
                     batchUpdateData.add(dataObjects);
                     if (rs.getRow() % 1000 == 0) {
-                        jdbcTemplate.batchUpdate(insertSql, batchUpdateData);
+                        jdbcTemplate2.batchUpdate(insertSql, batchUpdateData);
                         batchUpdateData.clear();
                     }
                     if (rdbmsSyncToolController.getSyncDataNumberSpinner().getValue() != -1) {
@@ -338,17 +338,17 @@ public class RdbmsSyncToolService {
                 return null;
             });
             if (!batchUpdateData.isEmpty()) {
-                jdbcTemplate.batchUpdate(insertSql, batchUpdateData);
+                jdbcTemplate2.batchUpdate(insertSql, batchUpdateData);
             }
         } finally {
-            JdbcUtils.close(dataSource1);
-            JdbcUtils.close(dataSource2);
+//            JdbcUtils.close(dataSource1);
+//            JdbcUtils.close(dataSource2);
         }
         TooltipUtil.showToast("生成测试同步数据完成,数量：" + dataNumber.get());
     }
 
     public void showTableData(String tableName, TreeView<String> tableTreeView) {
-        SimpleDataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
+        DataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
         try {
             List<Entity> entityList = null;
             if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
@@ -387,7 +387,7 @@ public class RdbmsSyncToolService {
             log.error("显示表数据错误：", e);
             TooltipUtil.showToast("显示表数据错误：" + e.getMessage());
         } finally {
-            JdbcUtils.close(dataSource);
+//            JdbcUtils.close(dataSource);
         }
     }
 

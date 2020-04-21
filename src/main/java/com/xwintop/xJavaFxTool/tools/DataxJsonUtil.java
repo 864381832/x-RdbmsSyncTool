@@ -23,6 +23,8 @@ public class DataxJsonUtil {
             return "5432";
         } else if ("dm".equalsIgnoreCase(DB_TYPE)) {
             return "5236";
+        } else if ("h2Server".equalsIgnoreCase(DB_TYPE)) {
+            return "9092";
         }
         return null;
     }
@@ -52,6 +54,14 @@ public class DataxJsonUtil {
             jdbcUrl = String.format("jdbc:jtds:sqlserver://%s:%s/%s", dbIp, dbPort, dbName);
         } else if ("dm".equalsIgnoreCase(DB_TYPE)) {
             jdbcUrl = String.format("jdbc:dm://%s:%s/%s", dbIp, dbPort, dbName);
+        } else if ("sqlite".equalsIgnoreCase(DB_TYPE)) {
+            jdbcUrl = String.format("jdbc:sqlite:%s", dbName);
+        } else if ("h2Embedded".equalsIgnoreCase(DB_TYPE)) {
+            jdbcUrl = String.format("jdbc:h2:%s", dbName);
+        } else if ("h2Server".equalsIgnoreCase(DB_TYPE)) {
+            jdbcUrl = String.format("jdbc:h2:tcp://%s:%s/%s", dbIp, dbPort, dbName);
+        } else if ("access".equalsIgnoreCase(DB_TYPE)) {
+            jdbcUrl = String.format("jdbc:ucanaccess://%s", dbName);
         }
         log.info("解析出jdbcUrl: " + jdbcUrl);
         return jdbcUrl;
@@ -64,16 +74,18 @@ public class DataxJsonUtil {
             type = "oracle";
         }
         String dbUser;
-        if (type.equals("oracle")) {
+        if ("oracle".equals(type)) {
             dbUser = StringUtils.defaultIfBlank(schema, userName).toUpperCase();
-        } else if (type.equals("postgresql")) {
+        } else if ("postgresql".equals(type)) {
             dbUser = StringUtils.defaultIfBlank(schema, "public");
-        } else if (type.equals("mysql")) {
+        } else if ("mysql".equals(type)) {
             dbUser = null;
-        } else if (type.equals("sqlserver")) {
+        } else if ("sqlserver".equals(type)) {
             dbUser = StringUtils.defaultIfBlank(schema, "dbo");
-        } else if (type.equals("db2")) {
+        } else if ("db2".equals(type)) {
             dbUser = StringUtils.defaultIfBlank(schema, userName).toUpperCase();
+        } else if ("h2Server".equals(type)) {
+            dbUser = StringUtils.defaultIfBlank(schema, "PUBLIC");
         } else {
             dbUser = StringUtils.defaultIfBlank(schema, userName);
         }

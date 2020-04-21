@@ -30,7 +30,7 @@ import java.util.ResourceBundle;
 public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private RdbmsSyncToolService entDataToolService = new RdbmsSyncToolService(this);
     private ContextMenu contextMenu = new ContextMenu();
-    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm"};
+    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm", "sqlite", "h2Embedded", "h2Server","access"};
     private String[] jsonNameSuffixStrings = new String[]{".json"};
     private String[] outputPathStrings = new String[]{"./executor"};
     private String[] quartzChoiceBoxStrings = new String[]{"SIMPLE", "CRON"};
