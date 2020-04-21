@@ -316,6 +316,7 @@ public class RdbmsSyncToolService {
             }
             String insertSql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName2, String.join(",", columnList2), StringUtils.repeat("?", ",", columnList2.length));
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource1);
+            JdbcTemplate jdbcTemplate2 = new JdbcTemplate(dataSource2);
             List batchUpdateData = new ArrayList();
             jdbcTemplate.query(querySql, rs -> {
                 while (rs.next()) {
@@ -338,7 +339,7 @@ public class RdbmsSyncToolService {
                 return null;
             });
             if (!batchUpdateData.isEmpty()) {
-                jdbcTemplate.batchUpdate(insertSql, batchUpdateData);
+                jdbcTemplate2.batchUpdate(insertSql, batchUpdateData);
             }
         } finally {
             JdbcUtils.close(dataSource1);
