@@ -154,7 +154,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                     contextMenu.getItems().add(menu_copyCreateTableSqlOracle);
                     MenuItem menu_copySelectTableCount = new MenuItem("一键生成查询表中数据量语句");
                     menu_copySelectTableCount.setOnAction(event1 -> {
-                        entDataToolService.copySelectTableCount("*", tableTreeView, "count");
+                        entDataToolService.copySelectTableCount("*", tableTreeView);
                     });
                     contextMenu.getItems().add(menu_copySelectTableCount);
                     MenuItem menu_selectTableCount = new MenuItem("一键查看表中数据量");
@@ -164,12 +164,12 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                     contextMenu.getItems().add(menu_selectTableCount);
                     MenuItem menu_copySelectTableMax = new MenuItem("一键生成查询表中最大值语句");
                     menu_copySelectTableMax.setOnAction(event1 -> {
-                        entDataToolService.copySelectTableCount("*", tableTreeView, "max");
+                        entDataToolService.copySelectTableMax("*", tableTreeView, selectedItem);
                     });
                     contextMenu.getItems().add(menu_copySelectTableMax);
                     MenuItem menu_selectTableMax = new MenuItem("一键查看表中数据最大值");
                     menu_selectTableMax.setOnAction(event1 -> {
-//                        entDataToolService.selectTableCount("*", tableTreeView);
+                        entDataToolService.selectTableMax("*", tableTreeView, null);
                     });
                     contextMenu.getItems().add(menu_selectTableMax);
                     MenuItem menu_DropTable = new MenuItem("一键Drop删除表结构");

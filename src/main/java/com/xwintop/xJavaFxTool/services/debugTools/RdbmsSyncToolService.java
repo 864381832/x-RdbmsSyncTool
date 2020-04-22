@@ -487,7 +487,7 @@ public class RdbmsSyncToolService {
         }
     }
 
-    public void copySelectTableCount(String tableName, TreeView<String> tableTreeView, String type) {
+    public void copySelectTableCount(String tableName, TreeView<String> tableTreeView) {
         StringBuffer stringBuffer = new StringBuffer();
         if ("*".equals(tableName)) {
             List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
@@ -499,21 +499,92 @@ public class RdbmsSyncToolService {
                 if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
                     selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
                 }
-                if ("count".equals(type)) {
-                    stringBuffer.append("select count(*) from " + selectTableName + ";\n");
-                } else if ("max".equals(type)) {
-                    stringBuffer.append("select max(*) from " + selectTableName + ";\n");
-                }
+                stringBuffer.append("select count(*) from " + selectTableName + ";\n");
             }
         } else {
             if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
                 tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
             }
-            if ("count".equals(type)) {
-                stringBuffer.append("select count(*) from " + tableName + ";\n");
-            } else if ("max".equals(type)) {
-                stringBuffer.append("select max(*) from " + tableName + ";\n");
+            stringBuffer.append("select count(*) from " + tableName + ";\n");
+        }
+        ClipboardUtil.setStr(stringBuffer.toString());
+        TooltipUtil.showToast("复制查询语句成功！" + stringBuffer.toString());
+    }
+
+    public void selectTableMax(String tableName, TreeView<String> tableTreeView, TreeItem selectedItem) {
+        if ("*".equals(tableName)) {
+            List<CheckBoxTreeItem<String>> checkBoxTreeItemList = getCheckBoxTreeItemListByTreeView(tableTreeView);
+            if (checkBoxTreeItemList.isEmpty()) {
+                TooltipUtil.showToast("未勾选表！");
+                return;
             }
+            TableView tableView = new TableView();
+            ObservableList<Map<String, String>> tableData = FXCollections.observableArrayList();
+            tableView.setEditable(true);
+            TableColumn tableColumn = new TableColumn("表名");
+            JavaFxViewUtil.setTableColumnMapValueFactory(tableColumn, "table");
+            TableColumn sqlColumn = new TableColumn("sql");
+            JavaFxViewUtil.setTableColumnMapValueFactory(sqlColumn, "sql");
+            TableColumn countColumn = new TableColumn("结果");
+            JavaFxViewUtil.setTableColumnMapValueFactory(countColumn, "count");
+            tableView.getColumns().add(tableColumn);
+            tableView.getColumns().add(sqlColumn);
+            tableView.getColumns().add(countColumn);
+            tableView.setItems(tableData);
+            for (CheckBoxTreeItem<String> tableNameTreeItem : checkBoxTreeItemList) {
+                String selectTableName = tableNameTreeItem.getValue();
+                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
+                    selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
+                }
+                Map tableInfoMap = getTableInfoMap(tableNameTreeItem.getChildren());
+                Map<String, String> tableMap = new HashMap<>();
+                tableMap.put("table", selectTableName);
+                String sql = "select max(" + tableInfoMap.get("where") + ") from " + selectTableName + ";";
+                tableMap.put("sql", sql);
+                List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
+                if (queryData != null && !queryData.isEmpty()) {
+                    Map<String, Object> map = queryData.get(0);
+                    tableMap.put("count", "" + map.values().toArray()[0]);
+                }
+                tableData.add(tableMap);
+            }
+            JavaFxViewUtil.openNewWindow("查询表字段最大值", tableView);
+        } else {
+            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
+                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            }
+            Map tableInfoMap = getTableInfoMap(selectedItem.getChildren());
+            String sql = "select max(" + tableInfoMap.get("where") + ") from " + tableName;
+            List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
+            if (queryData != null && !queryData.isEmpty()) {
+                Map<String, Object> map = queryData.get(0);
+                AlertUtil.showInfoAlert(tableName, sql + "\n\n结果：" + map.values().toArray()[0]);
+            }
+        }
+    }
+
+    public void copySelectTableMax(String tableName, TreeView<String> tableTreeView, TreeItem selectedItem) {
+        StringBuffer stringBuffer = new StringBuffer();
+        if ("*".equals(tableName)) {
+            List<CheckBoxTreeItem<String>> checkBoxTreeItemList = getCheckBoxTreeItemListByTreeView(tableTreeView);
+            if (checkBoxTreeItemList.isEmpty()) {
+                TooltipUtil.showToast("未勾选表！");
+                return;
+            }
+            for (CheckBoxTreeItem<String> tableNameTreeItem : checkBoxTreeItemList) {
+                String selectTableName = tableNameTreeItem.getValue();
+                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
+                    selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
+                }
+                Map tableInfoMap = getTableInfoMap(tableNameTreeItem.getChildren());
+                stringBuffer.append("select max(" + tableInfoMap.get("where") + ") from " + selectTableName + ";\n");
+            }
+        } else {
+            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
+                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            }
+            Map tableInfoMap = getTableInfoMap(selectedItem.getChildren());
+            stringBuffer.append("select max(" + tableInfoMap.get("where") + ") from " + tableName + ";");
         }
         ClipboardUtil.setStr(stringBuffer.toString());
         TooltipUtil.showToast("复制查询语句成功！" + stringBuffer.toString());
@@ -607,5 +678,4 @@ public class RdbmsSyncToolService {
         }
         return selectTableNameList;
     }
-
 }
