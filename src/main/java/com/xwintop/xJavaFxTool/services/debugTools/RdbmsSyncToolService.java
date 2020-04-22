@@ -459,6 +459,38 @@ public class RdbmsSyncToolService {
         }
     }
 
+    public void copySelectTableCount(String tableName, TreeView<String> tableTreeView, String type) {
+        StringBuffer stringBuffer = new StringBuffer();
+        if ("*".equals(tableName)) {
+            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            if (selectTableNameList.isEmpty()) {
+                TooltipUtil.showToast("未勾选表！");
+                return;
+            }
+            for (String selectTableName : selectTableNameList) {
+                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
+                    selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
+                }
+                if ("count".equals(type)) {
+                    stringBuffer.append("select count(*) from " + selectTableName + ";\n");
+                } else if ("max".equals(type)) {
+                    stringBuffer.append("select max(*) from " + selectTableName + ";\n");
+                }
+            }
+        } else {
+            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
+                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            }
+            if ("count".equals(type)) {
+                stringBuffer.append("select count(*) from " + tableName + ";\n");
+            } else if ("max".equals(type)) {
+                stringBuffer.append("select max(*) from " + tableName + ";\n");
+            }
+        }
+        ClipboardUtil.setStr(stringBuffer.toString());
+        TooltipUtil.showToast("复制查询语句成功！" + stringBuffer.toString());
+    }
+
     public void dropTable(String tableName, TreeView<String> tableTreeView) {
         boolean isOk = AlertUtil.confirmOkCancel("提示", "确定要drop table吗？");
         if (!isOk) {

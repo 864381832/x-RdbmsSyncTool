@@ -30,7 +30,7 @@ import java.util.ResourceBundle;
 public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private RdbmsSyncToolService entDataToolService = new RdbmsSyncToolService(this);
     private ContextMenu contextMenu = new ContextMenu();
-    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm", "sqlite", "h2Embedded", "h2Server","access"};
+    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm", "sqlite", "h2Embedded", "h2Server", "access"};
     private String[] jsonNameSuffixStrings = new String[]{".json"};
     private String[] outputPathStrings = new String[]{"./executor"};
     private String[] quartzChoiceBoxStrings = new String[]{"SIMPLE", "CRON"};
@@ -152,11 +152,26 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                         entDataToolService.showSqlAction("oracle");
                     });
                     contextMenu.getItems().add(menu_copyCreateTableSqlOracle);
+                    MenuItem menu_copySelectTableCount = new MenuItem("一键生成查询表中数据量语句");
+                    menu_copySelectTableCount.setOnAction(event1 -> {
+                        entDataToolService.copySelectTableCount("*", tableTreeView, "count");
+                    });
+                    contextMenu.getItems().add(menu_copySelectTableCount);
                     MenuItem menu_selectTableCount = new MenuItem("一键查看表中数据量");
                     menu_selectTableCount.setOnAction(event1 -> {
                         entDataToolService.selectTableCount("*", tableTreeView);
                     });
                     contextMenu.getItems().add(menu_selectTableCount);
+                    MenuItem menu_copySelectTableMax = new MenuItem("一键生成查询表中最大值语句");
+                    menu_copySelectTableMax.setOnAction(event1 -> {
+                        entDataToolService.copySelectTableCount("*", tableTreeView, "max");
+                    });
+                    contextMenu.getItems().add(menu_copySelectTableMax);
+                    MenuItem menu_selectTableMax = new MenuItem("一键查看表中数据最大值");
+                    menu_selectTableMax.setOnAction(event1 -> {
+//                        entDataToolService.selectTableCount("*", tableTreeView);
+                    });
+                    contextMenu.getItems().add(menu_selectTableMax);
                     MenuItem menu_DropTable = new MenuItem("一键Drop删除表结构");
                     menu_DropTable.setOnAction(event1 -> {
                         entDataToolService.dropTable("*", tableTreeView);
@@ -240,7 +255,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
             List<Map<String, String>> list = UrlDocumentDialogService.getConfig();
             if (list != null) {
                 for (Map<String, String> map : list) {
-                    MenuItem menu_tab = new MenuItem(map.get("name"));
+                    MenuItem menu_tab = new MenuItem(map.get("name") + "_" + map.get("userName"));
                     menu_tab.setOnAction(event1 -> {
                         hostText.setText(map.get("host"));
                         if (hostText == hostText1) {
