@@ -7,6 +7,7 @@ import cn.hutool.db.meta.Column;
 import cn.hutool.db.meta.MetaUtil;
 import cn.hutool.db.meta.Table;
 import cn.hutool.db.meta.TableType;
+import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.util.JdbcUtils;
 import com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController;
 import com.xwintop.xJavaFxTool.tools.DataxJsonUtil;
@@ -27,11 +28,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
+import java.io.Closeable;
 import java.io.File;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -66,18 +67,18 @@ public class RdbmsSyncToolService {
                 }
             } catch (Throwable e) {
                 log.error("getTables is error!尝试使用sql语句获取", e);
-                Connection connection = dataSource.getConnection();
-                try {
-                    if ("sqlserver".equals(dbType) || "sqlserverold".equals(dbType) || "access".equals(dbType)) {
-                        tableNames = SqlUtil.showSqlServerTables(connection, dbType);
-                    } else {
-                        if ("oracleSid".equals(dbType)) {
-                            dbType = "oracle";
-                        }
-                        tableNames = JdbcUtils.showTables(connection, dbType);
+                if ("sqlserver".equals(dbType) || "sqlserverold".equals(dbType) || "access".equals(dbType)) {
+                    tableNames = SqlUtil.showSqlServerTables(dataSource, dbType);
+                } else {
+                    if ("oracleSid".equals(dbType)) {
+                        dbType = "oracle";
                     }
-                } finally {
-                    JdbcUtils.close(connection);
+                    Connection connection = dataSource.getConnection();
+                    try {
+                        tableNames = JdbcUtils.showTables(connection, dbType);
+                    } finally {
+                        JdbcUtils.close(connection);
+                    }
                 }
             }
             log.info("获取到表名:" + tableNames);
@@ -106,17 +107,20 @@ public class RdbmsSyncToolService {
                     } catch (Throwable e) {
                         log.error("获取表结构失败！使用jdbc原生方法获取" + tableName, e);
                         String querySql = String.format("select * from %s where 1=2", tableName);
-                        Statement statement = connection.createStatement();
-                        ResultSet rs = statement.executeQuery(querySql);
-                        ResultSetMetaData rsMetaData = rs.getMetaData();
-                        for (int i = 1, len = rsMetaData.getColumnCount(); i <= len; i++) {
-                            Column column = new Column();
-                            column.setName(rsMetaData.getColumnName(i));
-                            column.setType(rsMetaData.getColumnType(i));
-                            column.setSize(rsMetaData.getColumnDisplaySize(i));
-                            column.setComment(rsMetaData.getColumnLabel(i));
-                            table.setColumn(column);
-                        }
+                        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+                        Table finalTable = table;
+                        jdbcTemplate.query(querySql, rs -> {
+                            ResultSetMetaData rsMetaData = rs.getMetaData();
+                            for (int i = 1, len = rsMetaData.getColumnCount(); i <= len; i++) {
+                                Column column = new Column();
+                                column.setName(rsMetaData.getColumnName(i));
+                                column.setType(rsMetaData.getColumnType(i));
+                                column.setSize(rsMetaData.getColumnDisplaySize(i));
+                                column.setComment(rsMetaData.getColumnLabel(i));
+                                finalTable.setColumn(column);
+                            }
+                            return null;
+                        });
                     }
                     if (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) {
                         tableMap.put(tableName, table);
@@ -140,9 +144,8 @@ public class RdbmsSyncToolService {
                 JdbcUtils.close(connection);
             }
         } finally {
-//            JdbcUtils.close(dataSource);
-            if (dataSource != null) {
-                dataSource.getConnection().close();
+            if (dataSource instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource);
             }
         }
     }
@@ -302,6 +305,7 @@ public class RdbmsSyncToolService {
         String[] columnList = (String[]) tableInfoMap.get("columnList");
         String[] columnList2 = (String[]) tableInfoMap2.get("columnList");
         AtomicInteger dataNumber = new AtomicInteger();
+        AtomicInteger dirtyDataNumber = new AtomicInteger();
         try {
             String querySql = null;
             if (StringUtils.isNotEmpty(rdbmsSyncToolController.getQuerySqlTextField().getText())) {
@@ -318,15 +322,33 @@ public class RdbmsSyncToolService {
             JdbcTemplate jdbcTemplate2 = new JdbcTemplate(dataSource2);
             List batchUpdateData = new ArrayList();
             jdbcTemplate.query(querySql, rs -> {
+                ResultSetMetaData rsMetaData = rs.getMetaData();
                 while (rs.next()) {
                     Object[] dataObjects = new Object[columnList2.length];
                     for (int i = 0; i < columnList2.length; i++) {
                         dataObjects[i] = rs.getObject(i + 1);
+                        switch (rsMetaData.getColumnType(i + 1)) {
+                            case Types.TIME:
+                                dataObjects[i] = rs.getTime(i + 1);
+                                break;
+                            case Types.DATE:
+                                if (rsMetaData.getColumnTypeName(i + 1).equalsIgnoreCase("year")) {
+                                    dataObjects[i] = rs.getInt(i + 1);
+                                } else {
+                                    dataObjects[i] = rs.getDate(i + 1);
+                                }
+                                break;
+                            case Types.TIMESTAMP:
+                                dataObjects[i] = rs.getTimestamp(i + 1);
+                                break;
+                            default:
+                                dataObjects[i] = rs.getObject(i + 1);
+                        }
                     }
                     dataNumber.getAndIncrement();
                     batchUpdateData.add(dataObjects);
                     if (rs.getRow() % 1000 == 0) {
-                        jdbcTemplate2.batchUpdate(insertSql, batchUpdateData);
+                        SqlUtil.doBatchInsert(insertSql, batchUpdateData, jdbcTemplate2, dirtyDataNumber);
                         batchUpdateData.clear();
                     }
                     if (rdbmsSyncToolController.getSyncDataNumberSpinner().getValue() != -1) {
@@ -338,13 +360,17 @@ public class RdbmsSyncToolService {
                 return null;
             });
             if (!batchUpdateData.isEmpty()) {
-                jdbcTemplate2.batchUpdate(insertSql, batchUpdateData);
+                SqlUtil.doBatchInsert(insertSql, batchUpdateData, jdbcTemplate2, dirtyDataNumber);
             }
         } finally {
-//            JdbcUtils.close(dataSource1);
-//            JdbcUtils.close(dataSource2);
+            if (dataSource1 instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource1);
+            }
+            if (dataSource2 instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource2);
+            }
         }
-        TooltipUtil.showToast("生成测试同步数据完成,数量：" + dataNumber.get());
+        TooltipUtil.showToast("生成测试同步数据完成,数量：" + dataNumber.get() + " 失败数量：" + dirtyDataNumber.get());
     }
 
     public void showTableData(String tableName, TreeView<String> tableTreeView) {
@@ -387,7 +413,9 @@ public class RdbmsSyncToolService {
             log.error("显示表数据错误：", e);
             TooltipUtil.showToast("显示表数据错误：" + e.getMessage());
         } finally {
-//            JdbcUtils.close(dataSource);
+            if (dataSource instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource);
+            }
         }
     }
 

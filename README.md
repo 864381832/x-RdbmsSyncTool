@@ -11,13 +11,16 @@ RdbmsSyncTool是使用javaFx开发的关系型数据库同步工具[xJavaFxTool]
 - 本项目使用了[lombok](https://projectlombok.org/),在查看本项目时如果您没有下载lombok 插件，请先安装,不然找不到get/set等方法
 - 依赖的[xcore包](https://gitee.com/xwintop/xcore)已上传至git托管的maven平台，git托管maven可参考教程(若无法下载请拉取项目自行编译)。[教程地址：点击进入](http://blog.csdn.net/u011747754/article/details/78574026)
 
-完成关系型数据库表结构获取，多种类型数据库直接数据转移，同步
+完成关系型数据库表结构获取，多种类型数据库直接数据转移，同步。
+
+目前支持的数据库类型有mysql、Oracle、sqlserver、PostgreSql、达梦、sqlite、h2、access等
 
 ![数据库同步工具.png](images/数据库同步工具.png)
 
 #### 版本记录
-- 1.0.0  20200419
+- 0.0.1  20200419
   1. 完成基本功能配置（对表进行查询、删除、建表语句、同步数据等操作）
   2. 支持mysql、Oracle、sqlserver、PostgreSql、达梦等数据库连接
-- 1.0.1  202004**
+- 0.0.2  20200421
   1. 添加sqlite、h2、access数据库支持
+  2. 优化数据同步功能
