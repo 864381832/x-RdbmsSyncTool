@@ -3,14 +3,13 @@ package com.xwintop.xJavaFxTool.controller.debugTools;
 import cn.hutool.core.swing.clipboard.ClipboardUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import com.xwintop.xJavaFxTool.services.debugTools.RdbmsSyncToolService;
-import com.xwintop.xJavaFxTool.services.debugTools.UrlDocumentDialogService;
 import com.xwintop.xJavaFxTool.tools.DataxJsonUtil;
 import com.xwintop.xJavaFxTool.view.debugTools.RdbmsSyncToolView;
 import com.xwintop.xcore.util.javafx.JavaFxViewUtil;
+import com.xwintop.xcore.util.javafx.TextFieldInputHistoryDialog;
 import com.xwintop.xcore.util.javafx.TooltipUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTreeCell;
 import javafx.scene.input.MouseButton;
@@ -20,8 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.controlsfx.control.MaskerPane;
 
 import java.net.URL;
-import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 @Getter
@@ -37,6 +34,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private String[] tableTypeStrings = new String[]{"TABLE+VIEW", "TABLE", "VIEW", "SYSTEM_TABLE", "GLOBAL_TEMPORARY", "LOCAL_TEMPORARY", "ALIAS", "SYNONYM"};
     private String[] dataSourceTypeStrings = new String[]{"Druid", "Driver", "Simple"};
     private MaskerPane masker = new MaskerPane();
+    private TextFieldInputHistoryDialog textFieldInputHistoryDialog = new TextFieldInputHistoryDialog("./javaFxConfigure/dbUrlDocumentConfigure.yml", "host", "port", "userName", "password", "dbName", "dbType");
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -132,109 +130,86 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                 });
                 ContextMenu contextMenu = new ContextMenu(menu_UnfoldAll, menu_FoldAll, menu_executeSql);
                 if ("源端库表".equals(selectedItem.getValue()) || "目标端库表".equals(selectedItem.getValue())) {
-                    MenuItem menu_copySelectSql = new MenuItem("一键复制查询语句");
-                    menu_copySelectSql.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键复制查询表名", event1 -> {
+                        String tableNames = String.join(",", RdbmsSyncToolService.getSelectNameList(selectedItem));
+                        ClipboardUtil.setStr(tableNames);
+                        TooltipUtil.showToast("复制表名成功：" + tableNames);
+                    });
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键复制查询语句", event1 -> {
                         entDataToolService.copySelectSql(null, tableTreeView, false);
                     });
-                    contextMenu.getItems().add(menu_copySelectSql);
-                    MenuItem menu_copySelectSqlMysql = new MenuItem("一键复制查询语句Mysql");
-                    menu_copySelectSqlMysql.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键复制查询语句Mysql", event1 -> {
                         entDataToolService.copySelectSql(null, tableTreeView, true);
                     });
-                    contextMenu.getItems().add(menu_copySelectSqlMysql);
-                    MenuItem menu_copyCreateTableSqlMysql = new MenuItem("一键生成建表语句Mysql");
-                    menu_copyCreateTableSqlMysql.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键生成建表语句Mysql", event1 -> {
                         entDataToolService.showSqlAction("mysql");
                     });
-                    contextMenu.getItems().add(menu_copyCreateTableSqlMysql);
-                    MenuItem menu_copyCreateTableSqlOracle = new MenuItem("一键生成建表语句Oracle");
-                    menu_copyCreateTableSqlOracle.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键生成建表语句Oracle", event1 -> {
                         entDataToolService.showSqlAction("oracle");
                     });
-                    contextMenu.getItems().add(menu_copyCreateTableSqlOracle);
-                    MenuItem menu_copySelectTableCount = new MenuItem("一键生成查询表中数据量语句");
-                    menu_copySelectTableCount.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键生成查询表中数据量语句", event1 -> {
                         entDataToolService.copySelectTableCount("*", tableTreeView);
                     });
-                    contextMenu.getItems().add(menu_copySelectTableCount);
-                    MenuItem menu_selectTableCount = new MenuItem("一键查看表中数据量");
-                    menu_selectTableCount.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键查看表中数据量", event1 -> {
                         entDataToolService.selectTableCount("*", tableTreeView);
                     });
-                    contextMenu.getItems().add(menu_selectTableCount);
-                    MenuItem menu_copySelectTableMax = new MenuItem("一键生成查询表中最大值语句");
-                    menu_copySelectTableMax.setOnAction(event1 -> {
-                        entDataToolService.copySelectTableMax("*", tableTreeView, selectedItem);
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键生成查询表中最大值语句", event1 -> {
+                        entDataToolService.copySelectTableMax("*", tableTreeView, null);
                     });
-                    contextMenu.getItems().add(menu_copySelectTableMax);
-                    MenuItem menu_selectTableMax = new MenuItem("一键查看表中数据最大值");
-                    menu_selectTableMax.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键查看表中数据最大值", event1 -> {
                         entDataToolService.selectTableMax("*", tableTreeView, null);
                     });
-                    contextMenu.getItems().add(menu_selectTableMax);
-                    MenuItem menu_DropTable = new MenuItem("一键Drop删除表结构");
-                    menu_DropTable.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键Drop删除表结构", event1 -> {
                         entDataToolService.dropTable("*", tableTreeView);
                     });
-                    contextMenu.getItems().add(menu_DropTable);
-                    MenuItem menu_deleteTable = new MenuItem("一键delete删除表数据");
-                    menu_deleteTable.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键delete删除表数据", event1 -> {
                         entDataToolService.deleteTableData("*", tableTreeView);
                     });
-                    contextMenu.getItems().add(menu_deleteTable);
-                    MenuItem menu_TruncateTable = new MenuItem("一键truncate删除表数据");
-                    menu_TruncateTable.setOnAction(event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键truncate删除表数据", event1 -> {
                         entDataToolService.truncateTableData("*", tableTreeView);
                     });
-                    contextMenu.getItems().add(menu_TruncateTable);
                 } else {
                     if ("源端库表".equals(selectedItem.getParent().getValue()) || "目标端库表".equals(selectedItem.getParent().getValue())) {
-                        MenuItem menu_copyTableName = new MenuItem("复制表名");
-                        menu_copyTableName.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "复制表名", event1 -> {
                             ClipboardUtil.setStr(selectedItem.getValue());
                         });
-                        contextMenu.getItems().add(menu_copyTableName);
-                        MenuItem menu_copySelectSql = new MenuItem("复制查询语句");
-                        menu_copySelectSql.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "复制字段名", event1 -> {
+                            ClipboardUtil.setStr(String.join(",", RdbmsSyncToolService.getSelectNameList(selectedItem)));
+                        });
+                        JavaFxViewUtil.addMenuItem(contextMenu, "复制查询语句", event1 -> {
                             entDataToolService.copySelectSql((CheckBoxTreeItem<String>) selectedItem, tableTreeView, false);
                         });
-                        contextMenu.getItems().add(menu_copySelectSql);
-                        MenuItem menu_copySelectSqlMysql = new MenuItem("复制查询语句mysql");
-                        menu_copySelectSqlMysql.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "复制查询语句mysql", event1 -> {
                             entDataToolService.copySelectSql((CheckBoxTreeItem<String>) selectedItem, tableTreeView, true);
                         });
-                        contextMenu.getItems().add(menu_copySelectSqlMysql);
-                        MenuItem menu_selectTableCount = new MenuItem("查看表中数据量");
-                        menu_selectTableCount.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "查看表中数据量", event1 -> {
                             entDataToolService.selectTableCount(selectedItem.getValue(), tableTreeView);
                         });
-                        contextMenu.getItems().add(menu_selectTableCount);
-                        MenuItem menu_ViewTable = new MenuItem("查看表内容");
-                        menu_ViewTable.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "复制查看表中数据量语句", event1 -> {
+                            entDataToolService.copySelectTableCount(selectedItem.getValue(), tableTreeView);
+                        });
+                        JavaFxViewUtil.addMenuItem(contextMenu, "查看表中数据最大值", event1 -> {
+                            entDataToolService.selectTableMax(selectedItem.getValue(), tableTreeView, selectedItem);
+                        });
+                        JavaFxViewUtil.addMenuItem(contextMenu, "复制查询表中最大值语句", event1 -> {
+                            entDataToolService.copySelectTableMax(selectedItem.getValue(), tableTreeView, selectedItem);
+                        });
+                        JavaFxViewUtil.addMenuItem(contextMenu, "查看表内容", event1 -> {
                             entDataToolService.showTableData(selectedItem.getValue(), tableTreeView);
                         });
-                        contextMenu.getItems().add(menu_ViewTable);
-                        MenuItem menu_DropTable = new MenuItem("Drop删除表结构");
-                        menu_DropTable.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "Drop删除表结构", event1 -> {
                             entDataToolService.dropTable(selectedItem.getValue(), tableTreeView);
                         });
-                        contextMenu.getItems().add(menu_DropTable);
-                        MenuItem menu_deleteTable = new MenuItem("delete删除表数据");
-                        menu_deleteTable.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "delete删除表数据", event1 -> {
                             entDataToolService.deleteTableData(selectedItem.getValue(), tableTreeView);
                         });
-                        contextMenu.getItems().add(menu_deleteTable);
-                        MenuItem menu_TruncateTable = new MenuItem("truncate删除表数据");
-                        menu_TruncateTable.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "truncate删除表数据", event1 -> {
                             entDataToolService.truncateTableData(selectedItem.getValue(), tableTreeView);
                         });
-                        contextMenu.getItems().add(menu_TruncateTable);
                     } else {
-                        MenuItem menu_copyTableName = new MenuItem("复制字段名");
-                        menu_copyTableName.setOnAction(event1 -> {
+                        JavaFxViewUtil.addMenuItem(contextMenu, "复制字段名", event1 -> {
                             ClipboardUtil.setStr(selectedItem.getValue());
                         });
-                        contextMenu.getItems().add(menu_copyTableName);
                     }
                 }
 
@@ -247,46 +222,22 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     }
 
     private void addUrlDocumentDialogController(TextField hostText) {
-        hostText.setOnMouseClicked(event -> {
-            if (contextMenu.isShowing()) {
-                contextMenu.hide();
+        textFieldInputHistoryDialog.setOnMouseClicked(hostText, map -> {
+            hostText.setText(map.get("host"));
+            if (hostText == hostText1) {
+                portText1.setText(map.get("port"));
+                dbNameText1.setText(map.get("dbName"));
+                dbTypeText1.setValue(map.get("dbType"));
+                userNameText1.setText(map.get("userName"));
+                pwdText1.setText(map.get("password"));
+            } else if (hostText == hostText2) {
+                portText2.setText(map.get("port"));
+                dbNameText2.setText(map.get("dbName"));
+                dbTypeText2.setValue(map.get("dbType"));
+                userNameText2.setText(map.get("userName"));
+                pwdText2.setText(map.get("password"));
             }
-            contextMenu.getItems().clear();
-            List<Map<String, String>> list = UrlDocumentDialogService.getConfig();
-            if (list != null) {
-                for (Map<String, String> map : list) {
-                    MenuItem menu_tab = new MenuItem(map.get("name") + "_" + map.get("userName"));
-                    menu_tab.setOnAction(event1 -> {
-                        hostText.setText(map.get("host"));
-                        if (hostText == hostText1) {
-                            portText1.setText(map.get("port"));
-                            dbNameText1.setText(map.get("dbName"));
-                            dbTypeText1.setValue(map.get("dbType"));
-                            userNameText1.setText(map.get("userName"));
-                            pwdText1.setText(map.get("password"));
-                        } else if (hostText == hostText2) {
-                            portText2.setText(map.get("port"));
-                            dbNameText2.setText(map.get("dbName"));
-                            dbTypeText2.setValue(map.get("dbType"));
-                            userNameText2.setText(map.get("userName"));
-                            pwdText2.setText(map.get("password"));
-                        }
-                    });
-                    contextMenu.getItems().add(menu_tab);
-                }
-            }
-            MenuItem menu_tab = new MenuItem("编辑历史连接");
-            menu_tab.setOnAction(event1 -> {
-                try {
-                    FXMLLoader fXMLLoader = UrlDocumentDialogController.getFXMLLoader();
-                    JavaFxViewUtil.openNewWindow("历史连接编辑", fXMLLoader.load());
-                } catch (Exception e) {
-                    log.error("加载历史连接编辑界面失败", e);
-                }
-            });
-            contextMenu.getItems().add(menu_tab);
-            contextMenu.show(hostText, null, 0, hostText.getHeight());
-        });
+        }, map -> map.get("name") + " " + map.get("userName"));
     }
 
     @FXML
@@ -294,7 +245,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         masker.setVisible(true);
         ThreadUtil.execute(() -> {
             try {
-                UrlDocumentDialogService.addConfig(hostText1.getText(), portText1.getText(), userNameText1.getText(), pwdText1.getText(), dbNameText1.getText(), dbTypeText1.getValue());
+                textFieldInputHistoryDialog.addConfig(hostText1.getText(), portText1.getText(), userNameText1.getText(), pwdText1.getText(), dbNameText1.getText(), dbTypeText1.getValue());
                 entDataToolService.connectAction(dbTypeText1.getValue(), hostText1.getText(), portText1.getText(), dbNameText1.getText(), userNameText1.getText(), pwdText1.getText(), tableTreeView1);
             } catch (Exception e) {
                 log.error("连接失败：", e);
@@ -309,7 +260,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         masker.setVisible(true);
         ThreadUtil.execute(() -> {
             try {
-                UrlDocumentDialogService.addConfig(hostText2.getText(), portText2.getText(), userNameText2.getText(), pwdText2.getText(), dbNameText2.getText(), dbTypeText2.getValue());
+                textFieldInputHistoryDialog.addConfig(hostText2.getText(), portText2.getText(), userNameText2.getText(), pwdText2.getText(), dbNameText2.getText(), dbTypeText2.getValue());
                 entDataToolService.connectAction(dbTypeText2.getValue(), hostText2.getText(), portText2.getText(), dbNameText2.getText(), userNameText2.getText(), pwdText2.getText(), tableTreeView2);
             } catch (Exception e) {
                 log.error("连接失败：", e);

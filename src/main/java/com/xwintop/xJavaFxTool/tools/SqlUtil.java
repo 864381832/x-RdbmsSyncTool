@@ -16,10 +16,8 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
+import java.io.Closeable;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -100,35 +98,11 @@ public class SqlUtil {
             log.error("executeSql:" + sql + " 错误：", e);
             TooltipUtil.showToast("executeSql:" + sql + " 错误：" + e.getMessage());
         } finally {
-//            JdbcUtils.close(dataSource);
+            if (dataSource instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource);
+            }
         }
     }
-
-//    public static List<String> showSqlServerTables(Connection conn, String dbType) throws SQLException {
-//        List<String> tables = new ArrayList<String>();
-//        Statement stmt = null;
-//        ResultSet rs = null;
-//        try {
-//            stmt = conn.createStatement();
-//            if ("sqlserver".equals(dbType)) {
-//                rs = stmt.executeQuery("select c.name from sys.objects c where c.type='u'");
-//            } else if ("sqlserverold".equals(dbType)) {
-//                rs = stmt.executeQuery("select c.name from sysobjects c where c.type='u'");
-//            } else if ("access".equals(dbType)) {
-//                rs = stmt.executeQuery("select table_name from information_schema.tables");
-//            } else {
-//                return tables;
-//            }
-//            while (rs.next()) {
-//                String tableName = rs.getString(1);
-//                tables.add(tableName);
-//            }
-//        } finally {
-//            JdbcUtils.close(rs);
-//            JdbcUtils.close(stmt);
-//        }
-//        return tables;
-//    }
 
     public static List<String> showSqlServerTables(DataSource dataSource, String dbType) throws SQLException {
         List<String> tables = new ArrayList<>();
@@ -156,7 +130,9 @@ public class SqlUtil {
             log.error("executeQuerySql:" + sql + " 错误：", e);
             TooltipUtil.showToast("executeQuerySql:" + sql + " 错误：" + e.getMessage());
         } finally {
-//            JdbcUtils.close(dataSource);
+            if (dataSource instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource);
+            }
         }
         return null;
     }

@@ -45,8 +45,16 @@
 		<dependency>
 			<groupId>com.xwintop</groupId>
 			<artifactId>xcore</artifactId>
-			<version>0.0.4-SNAPSHOT</version>
+			<version>0.0.5</version>
 <!--			<scope>provided</scope>-->
+		</dependency>
+
+		<!-- lombok消除冗长的 java代码 -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.6</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

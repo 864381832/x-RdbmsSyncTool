@@ -442,7 +442,7 @@ public class RdbmsSyncToolService {
 
     public void selectTableCount(String tableName, TreeView<String> tableTreeView) {
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -466,8 +466,9 @@ public class RdbmsSyncToolService {
                 }
                 Map<String, String> tableMap = new HashMap<>();
                 tableMap.put("table", selectTableName);
-                tableMap.put("sql", "select count(*) from " + selectTableName + ";");
-                List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, "select count(*) from " + selectTableName);
+                String sql = "select count(*) from " + selectTableName;
+                tableMap.put("sql", sql);
+                List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
                 if (queryData != null && !queryData.isEmpty()) {
                     Map<String, Object> map = queryData.get(0);
                     tableMap.put("count", "" + map.values().toArray()[0]);
@@ -479,10 +480,11 @@ public class RdbmsSyncToolService {
             if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
                 tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
             }
-            List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, "select count(*) from " + tableName);
+            String sql = "select count(*) from " + tableName;
+            List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
             if (queryData != null && !queryData.isEmpty()) {
                 Map<String, Object> map = queryData.get(0);
-                AlertUtil.showInfoAlert(tableName, "select count(*) from " + tableName + "\n\n数量：" + map.values().toArray()[0]);
+                AlertUtil.showInfoAlert(tableName, sql + "\n\n数量：" + map.values().toArray()[0]);
             }
         }
     }
@@ -490,7 +492,7 @@ public class RdbmsSyncToolService {
     public void copySelectTableCount(String tableName, TreeView<String> tableTreeView) {
         StringBuffer stringBuffer = new StringBuffer();
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -539,7 +541,7 @@ public class RdbmsSyncToolService {
                 Map tableInfoMap = getTableInfoMap(tableNameTreeItem.getChildren());
                 Map<String, String> tableMap = new HashMap<>();
                 tableMap.put("table", selectTableName);
-                String sql = "select max(" + tableInfoMap.get("where") + ") from " + selectTableName + ";";
+                String sql = "select max(" + tableInfoMap.get("where") + ") from " + selectTableName;
                 tableMap.put("sql", sql);
                 List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
                 if (queryData != null && !queryData.isEmpty()) {
@@ -596,7 +598,7 @@ public class RdbmsSyncToolService {
             return;
         }
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -615,7 +617,7 @@ public class RdbmsSyncToolService {
             return;
         }
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -634,7 +636,7 @@ public class RdbmsSyncToolService {
             return;
         }
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -668,9 +670,9 @@ public class RdbmsSyncToolService {
         SqlUtil.executeSql(rdbmsSyncToolController, tableTreeView, sqlSb);
     }
 
-    public List<String> getSelectTableNameList(TreeView<String> tableTreeView) {
+    public static List<String> getSelectNameList(TreeItem<String> rootTreeItem) {
         List<String> selectTableNameList = new ArrayList<>();
-        for (TreeItem<String> treeItem : tableTreeView.getRoot().getChildren()) {
+        for (TreeItem<String> treeItem : rootTreeItem.getChildren()) {
             CheckBoxTreeItem<String> tableNameTreeItem = (CheckBoxTreeItem<String>) treeItem;
             if (tableNameTreeItem.isSelected()) {
                 selectTableNameList.add(tableNameTreeItem.getValue());
