@@ -32,7 +32,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private String[] outputPathStrings = new String[]{"./executor"};
     private String[] quartzChoiceBoxStrings = new String[]{"SIMPLE", "CRON"};
     private String[] tableTypeStrings = new String[]{"TABLE+VIEW", "TABLE", "VIEW", "SYSTEM_TABLE", "GLOBAL_TEMPORARY", "LOCAL_TEMPORARY", "ALIAS", "SYNONYM"};
-    private String[] dataSourceTypeStrings = new String[]{"Druid", "Driver", "Simple"};
+    private String[] dataSourceTypeStrings = new String[]{"Druid", "Driver", "Simple", "Hikari"};
     private MaskerPane masker = new MaskerPane();
     private TextFieldInputHistoryDialog textFieldInputHistoryDialog = new TextFieldInputHistoryDialog("./javaFxConfigure/dbUrlDocumentConfigure.yml", "host", "port", "userName", "password", "dbName", "dbType");
 

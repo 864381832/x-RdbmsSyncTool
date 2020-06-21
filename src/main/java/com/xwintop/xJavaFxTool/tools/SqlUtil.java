@@ -6,6 +6,7 @@ import com.alibaba.druid.util.JdbcUtils;
 import com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController;
 import com.xwintop.xJavaFxTool.services.debugTools.RdbmsSyncToolService;
 import com.xwintop.xcore.util.javafx.TooltipUtil;
+import com.zaxxer.hikari.HikariDataSource;
 import javafx.scene.control.CheckBoxTreeItem;
 import javafx.scene.control.TreeView;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,8 @@ public class SqlUtil {
             dataSource = new DriverManagerDataSource(DataxJsonUtil.getJdbcUrl(jdbcUrl, dbType, dbIp, dbPort, dbName), dbUserName, dbUserPassword);
         } else if ("Simple".equals(dataSourceType)) {
             dataSource = getSimpleDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, jdbcUrl);
+        } else if ("Hikari".equals(dataSourceType)) {
+            dataSource = getHikariDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, jdbcUrl);
         }
         return dataSource;
     }
@@ -64,6 +67,22 @@ public class SqlUtil {
             e.printStackTrace();
         }
         SimpleDataSource dataSource = new SimpleDataSource(jdbcUrl, dbUserName, dbUserPassword, driver);
+        return dataSource;
+    }
+
+    public static HikariDataSource getHikariDataSource(String dbType, String dbIp, String dbPort, String dbName, String dbUserName, String dbUserPassword, String jdbcUrl) {
+        jdbcUrl = DataxJsonUtil.getJdbcUrl(jdbcUrl, dbType, dbIp, dbPort, dbName);
+        String driver = null;
+        try {
+            driver = JdbcUtils.getDriverClassName(jdbcUrl);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        HikariDataSource dataSource = new HikariDataSource();
+        dataSource.setJdbcUrl(jdbcUrl);
+        dataSource.setUsername(dbUserName);
+        dataSource.setPassword(dbUserPassword);
+        dataSource.setDriverClassName(driver);
         return dataSource;
     }
 
