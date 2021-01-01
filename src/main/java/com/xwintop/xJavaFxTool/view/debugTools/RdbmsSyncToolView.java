@@ -62,7 +62,9 @@ public abstract class RdbmsSyncToolView implements Initializable {
     @FXML
     protected StackPane loadingStackPane;
     @FXML
-    protected TextField schemaTextField;
+    protected TextField schemaTextField1;
+    @FXML
+    protected TextField schemaTextField2;
     @FXML
     protected TextField ignoreTableNameTextField;
     @FXML

@@ -16,16 +16,20 @@ import javafx.scene.input.MouseButton;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.controlsfx.control.MaskerPane;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 @Getter
 @Setter
 @Slf4j
 public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private RdbmsSyncToolService entDataToolService = new RdbmsSyncToolService(this);
+    private TextFieldInputHistoryDialog textFieldInputHistoryDialog = new TextFieldInputHistoryDialog("./javaFxConfigure/dbUrlDocumentConfigure.yml", "host", "port", "dbName", "dbType", "userName", "password", "jdbcUrl", "schema");
     private ContextMenu contextMenu = new ContextMenu();
     private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm", "sqlite", "h2Embedded", "h2Server", "access", "db2"};
     private String[] jsonNameSuffixStrings = new String[]{".json"};
@@ -34,7 +38,6 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private String[] tableTypeStrings = new String[]{"TABLE+VIEW", "TABLE", "VIEW", "SYSTEM_TABLE", "GLOBAL_TEMPORARY", "LOCAL_TEMPORARY", "ALIAS", "SYNONYM"};
     private String[] dataSourceTypeStrings = new String[]{"Druid", "Driver", "Simple", "Hikari"};
     private MaskerPane masker = new MaskerPane();
-    private TextFieldInputHistoryDialog textFieldInputHistoryDialog = new TextFieldInputHistoryDialog("./javaFxConfigure/dbUrlDocumentConfigure.yml", "host", "port", "userName", "password", "dbName", "dbType");
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -46,9 +49,9 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private void initView() {
         masker.setVisible(false);
         loadingStackPane.getChildren().add(masker);
-        hostText1.setText("192.168.129.121");
-        dbNameText1.setText("test");
-        pwdText1.setText("easipass");
+//        hostText1.setText("127.0.0.1");
+//        dbNameText1.setText("admin");
+//        pwdText1.setText("admin");
 
         JavaFxViewUtil.setPasswordTextFieldFactory(pwdText1);
         JavaFxViewUtil.setPasswordTextFieldFactory(pwdText2);
@@ -130,7 +133,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                 });
                 ContextMenu contextMenu = new ContextMenu(menu_UnfoldAll, menu_FoldAll, menu_executeSql);
                 if ("源端库表".equals(selectedItem.getValue()) || "目标端库表".equals(selectedItem.getValue())) {
-                    JavaFxViewUtil.addMenuItem(contextMenu, "一键复制查询表名", event1 -> {
+                    JavaFxViewUtil.addMenuItem(contextMenu, "一键复制表名", event1 -> {
                         String tableNames = String.join(",", RdbmsSyncToolService.getSelectNameList(selectedItem));
                         ClipboardUtil.setStr(tableNames);
                         TooltipUtil.showToast("复制表名成功：" + tableNames);
@@ -172,9 +175,11 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                     if ("源端库表".equals(selectedItem.getParent().getValue()) || "目标端库表".equals(selectedItem.getParent().getValue())) {
                         JavaFxViewUtil.addMenuItem(contextMenu, "复制表名", event1 -> {
                             ClipboardUtil.setStr(selectedItem.getValue());
+                            TooltipUtil.showToast("复制表名成功：" + selectedItem.getValue());
                         });
                         JavaFxViewUtil.addMenuItem(contextMenu, "复制字段名", event1 -> {
                             ClipboardUtil.setStr(String.join(",", RdbmsSyncToolService.getSelectNameList(selectedItem)));
+                            TooltipUtil.showToast("复制字段名成功：" + String.join(",", RdbmsSyncToolService.getSelectNameList(selectedItem)));
                         });
                         JavaFxViewUtil.addMenuItem(contextMenu, "复制查询语句", event1 -> {
                             entDataToolService.copySelectSql((CheckBoxTreeItem<String>) selectedItem, tableTreeView, false);
@@ -230,14 +235,18 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                 dbTypeText1.setValue(map.get("dbType"));
                 userNameText1.setText(map.get("userName"));
                 pwdText1.setText(map.get("password"));
+                jdbcUrlField1.setText(StringUtils.defaultString(map.get("jdbcUrl")));
+                schemaTextField1.setText(StringUtils.defaultString(map.get("schema")));
             } else if (hostText == hostText2) {
                 portText2.setText(map.get("port"));
                 dbNameText2.setText(map.get("dbName"));
                 dbTypeText2.setValue(map.get("dbType"));
                 userNameText2.setText(map.get("userName"));
                 pwdText2.setText(map.get("password"));
+                jdbcUrlField2.setText(StringUtils.defaultString(map.get("jdbcUrl")));
+                schemaTextField2.setText(StringUtils.defaultString(map.get("schema")));
             }
-        }, map -> map.get("name") + " " + map.get("userName"));
+        }, map -> map.get("name") + "/" + map.get("dbName") + "/" + map.get("userName"));
     }
 
     @FXML
@@ -245,10 +254,17 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         masker.setVisible(true);
         ThreadUtil.execute(() -> {
             try {
-                textFieldInputHistoryDialog.addConfig(hostText1.getText(), portText1.getText(), userNameText1.getText(), pwdText1.getText(), dbNameText1.getText(), dbTypeText1.getValue());
-                entDataToolService.connectAction(dbTypeText1.getValue(), hostText1.getText(), portText1.getText(), dbNameText1.getText(), userNameText1.getText(), pwdText1.getText(), tableTreeView1);
+                Future<?> future = ThreadUtil.execAsync(() -> {
+                    try {
+                        textFieldInputHistoryDialog.addConfig(hostText1.getText(), portText1.getText(), dbNameText1.getText(), dbTypeText1.getValue(), userNameText1.getText(), pwdText1.getText(), jdbcUrlField1.getText(), schemaTextField1.getText());
+                        entDataToolService.connectAction(dbTypeText1.getValue(), hostText1.getText(), portText1.getText(), dbNameText1.getText(), userNameText1.getText(), pwdText1.getText(), tableTreeView1);
+                    } catch (Exception e) {
+                        log.error("连接失败：", e);
+                    }
+                });
+                future.get(30, TimeUnit.SECONDS);
             } catch (Exception e) {
-                log.error("连接失败：", e);
+                log.error("连接超时：", e);
             } finally {
                 masker.setVisible(false);
             }
@@ -260,10 +276,17 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         masker.setVisible(true);
         ThreadUtil.execute(() -> {
             try {
-                textFieldInputHistoryDialog.addConfig(hostText2.getText(), portText2.getText(), userNameText2.getText(), pwdText2.getText(), dbNameText2.getText(), dbTypeText2.getValue());
-                entDataToolService.connectAction(dbTypeText2.getValue(), hostText2.getText(), portText2.getText(), dbNameText2.getText(), userNameText2.getText(), pwdText2.getText(), tableTreeView2);
+                Future<?> future = ThreadUtil.execAsync(() -> {
+                    try {
+                        textFieldInputHistoryDialog.addConfig(hostText2.getText(), portText2.getText(), dbNameText2.getText(), dbTypeText2.getValue(), userNameText2.getText(), pwdText2.getText(), jdbcUrlField2.getText(), schemaTextField2.getText());
+                        entDataToolService.connectAction(dbTypeText2.getValue(), hostText2.getText(), portText2.getText(), dbNameText2.getText(), userNameText2.getText(), pwdText2.getText(), tableTreeView2);
+                    } catch (Exception e) {
+                        log.error("连接失败：", e);
+                    }
+                });
+                future.get(30, TimeUnit.SECONDS);
             } catch (Exception e) {
-                log.error("连接失败：", e);
+                log.error("连接超时：", e);
             } finally {
                 masker.setVisible(false);
             }

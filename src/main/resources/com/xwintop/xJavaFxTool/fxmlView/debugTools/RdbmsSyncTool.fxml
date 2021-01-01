@@ -18,7 +18,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="525.0" prefWidth="1005.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController">
+<AnchorPane prefHeight="653.0" prefWidth="1226.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController">
    <children>
       <StackPane fx:id="loadingStackPane" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
@@ -28,57 +28,59 @@
                      <children>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <Label text="源端库" />
-                              <Label text="ip" />
-                              <TextField fx:id="hostText1" text="127.0.0.1" />
-                              <Label text="端口" />
-                              <TextField fx:id="portText1" prefWidth="46.0" text="3306">
+                              <Label minWidth="40.0" text="源端库" />
+                              <Label minWidth="10.0" text="ip" />
+                              <TextField fx:id="hostText1" prefWidth="130.0" text="127.0.0.1" />
+                              <Label minWidth="30.0" text="端口" />
+                              <TextField fx:id="portText1" prefWidth="60.0" text="3306">
                                  <tooltip>
                                     <Tooltip text="mysql：3306  oracle:1521  sqlserver:1433  postgreSql:5432" />
                                  </tooltip></TextField>
-                              <Label text="dbName" />
-                              <TextField fx:id="dbNameText1" />
-                              <Label text="类型" />
+                              <Label minWidth="50.0" text="dbName" />
+                              <TextField fx:id="dbNameText1" prefWidth="100.0" />
+                              <Label minWidth="30.0" text="类型" />
                               <ChoiceBox fx:id="dbTypeText1" prefWidth="66.0" />
-                              <Label text="用户名" />
+                              <Label minWidth="40.0" text="用户名" />
                               <TextField fx:id="userNameText1" text="root" />
-                              <Label text="密码" />
+                              <Label minWidth="30.0" text="密码" />
                               <StackPane>
                                  <children>
                                     <PasswordField fx:id="pwdText1" text="" />
                                  </children>
                               </StackPane>
-                              <TextField fx:id="jdbcUrlField1" promptText="jdbcUrl" disable="true">
+                              <TextField fx:id="jdbcUrlField1" promptText="jdbcUrl">
                                  <tooltip>
                                     <Tooltip text="jdbc:mysql://127.0.0.1:3306/test   jdbc:sqlserver://127.0.0.1:1433;DatabaseName=test    jdbc:oracle:thin:@127.0.0.1:1521/test    jdbc:postgresql://127.0.0.1:5432/test" />
                                  </tooltip></TextField>
-                              <Button fx:id="connectButton1" mnemonicParsing="false" onAction="#connectAction1" text="连接" />
+                              <TextField fx:id="schemaTextField1" prefWidth="120.0" promptText="schema" />
+                              <Button fx:id="connectButton1" minWidth="50.0" mnemonicParsing="false" onAction="#connectAction1" text="连接" />
                            </children>
                         </HBox>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <Label text="目标库" />
-                              <Label text="ip" />
-                              <TextField fx:id="hostText2" text="127.0.0.1" />
-                              <Label text="端口" />
-                              <TextField fx:id="portText2" prefWidth="46.0" text="3306" />
-                              <Label text="dbName" />
-                              <TextField fx:id="dbNameText2" text="wms" />
-                              <Label text="类型" />
+                              <Label minWidth="40.0" text="目标库" />
+                              <Label minWidth="10.0" text="ip" />
+                              <TextField fx:id="hostText2" prefWidth="130.0" text="127.0.0.1" />
+                              <Label minWidth="30.0" text="端口" />
+                              <TextField fx:id="portText2" prefWidth="60.0" text="3306" />
+                              <Label minWidth="50.0" text="dbName" />
+                              <TextField fx:id="dbNameText2" prefWidth="100.0" text="wms" />
+                              <Label minWidth="30.0" text="类型" />
                               <ChoiceBox fx:id="dbTypeText2" prefWidth="66.0" />
-                              <Label text="用户名" />
+                              <Label minWidth="40.0" text="用户名" />
                               <TextField fx:id="userNameText2" text="root" />
-                              <Label text="密码" />
+                              <Label minWidth="30.0" text="密码" />
                               <StackPane>
                                  <children>
                                     <PasswordField fx:id="pwdText2" text="easipass" />
                                  </children>
                               </StackPane>
-                              <TextField fx:id="jdbcUrlField2" promptText="jdbcUrl" disable="true">
+                              <TextField fx:id="jdbcUrlField2" promptText="jdbcUrl">
                                  <tooltip>
                                     <Tooltip text="jdbc:oracle:thin:@127.0.0.1:1521/test    jdbc:postgresql://127.0.0.1:5432/test" />
                                  </tooltip></TextField>
-                              <Button fx:id="connectButton2" mnemonicParsing="false" onAction="#connectAction2" text="连接" />
+                              <TextField fx:id="schemaTextField2" prefWidth="120.0" promptText="schema" />
+                              <Button fx:id="connectButton2" minWidth="50.0" mnemonicParsing="false" onAction="#connectAction2" text="连接" />
                            </children>
                         </HBox>
                      </children>
@@ -122,8 +124,10 @@
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
                               <CheckBox fx:id="isShowCheckBox" mnemonicParsing="false" selected="true" text="预览" />
-                              <TextField fx:id="schemaTextField" promptText="schema" />
-                              <TextField fx:id="ignoreTableNameTextField" promptText="加载时过滤出表名" />
+                              <TextField fx:id="ignoreTableNameTextField" promptText="加载时过滤出表名">
+                                 <tooltip>
+                                    <Tooltip text="加载时过滤出表名(用逗号分隔,支持正则表达式)" />
+                                 </tooltip></TextField>
                               <ChoiceBox fx:id="quartzChoiceBox" prefHeight="23.0" prefWidth="102.0" />
                               <AnchorPane prefHeight="23.0" prefWidth="200.0">
                                  <children>

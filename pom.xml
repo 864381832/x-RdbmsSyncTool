@@ -4,7 +4,7 @@
 
 	<groupId>com.xwintop</groupId>
 	<artifactId>x-RdbmsSyncTool</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<packaging>jar</packaging>
 	<name>x-RdbmsSyncTool</name>
 
@@ -45,11 +45,10 @@
 		<dependency>
 			<groupId>com.xwintop</groupId>
 			<artifactId>xcore</artifactId>
-			<version>0.0.5</version>
+			<version>0.0.6</version>
 <!--			<scope>provided</scope>-->
 		</dependency>
 
-		<!-- lombok消除冗长的 java代码 -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -60,7 +59,7 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.1.16</version>
+			<version>1.1.24</version>
 		</dependency>
 
 		<!-- mysql的数据库驱动包 -->
@@ -113,13 +112,6 @@
 			<groupId>net.sf.ucanaccess</groupId>
 			<artifactId>ucanaccess</artifactId>
 			<version>4.0.4</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/com.ibm.db2.jcc/db2jcc -->
-		<dependency>
-			<groupId>com.ibm.db2.jcc</groupId>
-			<artifactId>db2jcc</artifactId>
-			<version>db2jcc4</version>
 		</dependency>
 
 		<dependency>
