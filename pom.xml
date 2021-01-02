@@ -119,7 +119,7 @@
 			<artifactId>dmjdbc7</artifactId>
 			<version>1.7.0</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/libs/Dm7JdbcDriver17.jar</systemPath>
+			<systemPath>${project.basedir}/libs/DmJdbcDriver18.jar</systemPath>
 		</dependency>
 
 		<dependency>
