@@ -10,6 +10,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import javafx.scene.control.CheckBoxTreeItem;
 import javafx.scene.control.TreeView;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -19,6 +20,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -194,5 +196,30 @@ public class SqlUtil {
                 }
             }
         }
+    }
+
+    public static String getDataxWhereSql(String filterLongKeyColumn, Long maxKeyValue, Long lastMaxValue) {
+        return String.format(" (%s < %s AND %s <= %s) ", maxKeyValue, filterLongKeyColumn, filterLongKeyColumn, lastMaxValue);
+    }
+
+    public static String getDataxWhereSql(String DB_TYPE, String filterTimeColumn, Timestamp lastSyncTime, Timestamp maxLastupdate) {
+        StringBuffer stringBuffer = new StringBuffer(filterTimeColumn);
+        if ("sqlserver".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > CONVERT(datetime,'" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd HH:mm:ss.SSS") + "',21) and ");
+            stringBuffer.append(filterTimeColumn).append(" <= CONVERT(datetime,'" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd HH:mm:ss.SSS") + "',21)");
+        } else if ("oracle".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > TO_TIMESTAMP('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd-HH:mm:ss") + String.format(".%09d", lastSyncTime.getNanos()) + "','yyyy-MM-dd-hh24:mi:ss.ff9') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= TO_TIMESTAMP('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd-HH:mm:ss") + String.format(".%09d", maxLastupdate.getNanos()) + "','yyyy-MM-dd-hh24:mi:ss.ff9')");
+        } else if ("mysql".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > str_to_date('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd HH:mm:ss.SSS") + "','%Y-%m-%d %H:%i:%s.%f') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= str_to_date('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd HH:mm:ss.SSS") + "','%Y-%m-%d %H:%i:%s.%f')");
+        } else if ("postgresq".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > to_timestamp('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd-HH:mm:ss.SSS") + "','yyyy-MM-dd-hh24:MI:ss.MS') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= to_timestamp('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd-HH:mm:ss.SSS") + "','yyyy-MM-dd-hh24:MI:ss.MS')");
+        } else {
+            stringBuffer.append(" > to_timestamp('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd-HH:mm:ss") + "','yyyy-MM-dd-hh24:MI:ss') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= to_timestamp('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd-HH:mm:ss") + "','yyyy-MM-dd-hh24:MI:ss')");
+        }
+        return stringBuffer.toString();
     }
 }

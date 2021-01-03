@@ -105,13 +105,11 @@
                      <children>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <Label text="自定义sql" />
-                              <TextField fx:id="querySqlTextField" promptText="请输入querySql" />
-                              <ComboBox fx:id="jsonNameSuffixComboBox" editable="true" prefWidth="130.0" promptText="自定义文件后缀名">
+                              <CheckBox fx:id="isShowCheckBox" mnemonicParsing="false" selected="true" text="预览" />
+                              <TextField fx:id="ignoreTableNameTextField" promptText="过滤出表名">
                                  <tooltip>
-                                    <Tooltip text="自定义文件名后缀，默认为各阶段配置的默认后缀" />
-                                 </tooltip>
-                              </ComboBox>
+                                    <Tooltip text="加载时过滤出表名(用逗号分隔,支持正则表达式)" />
+                                 </tooltip></TextField>
                               <ComboBox fx:id="outputPathComboBox" editable="true" prefWidth="120.0" promptText="输出路径">
                                  <tooltip>
                                     <Tooltip text="自定义输出路径，默认为./executor" />
@@ -123,33 +121,8 @@
                         </HBox>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <CheckBox fx:id="isShowCheckBox" mnemonicParsing="false" selected="true" text="预览" />
-                              <TextField fx:id="ignoreTableNameTextField" promptText="加载时过滤出表名">
-                                 <tooltip>
-                                    <Tooltip text="加载时过滤出表名(用逗号分隔,支持正则表达式)" />
-                                 </tooltip></TextField>
-                              <ChoiceBox fx:id="quartzChoiceBox" prefHeight="23.0" prefWidth="102.0" />
-                              <AnchorPane prefHeight="23.0" prefWidth="200.0">
-                                 <children>
-                                    <TextField fx:id="cronTextField" prefHeight="23.0" prefWidth="188.0" text="0 0 1 * * ?" visible="false" />
-                                    <AnchorPane fx:id="simpleScheduleAnchorPane" layoutX="2.0">
-                                       <children>
-                                          <Label layoutY="5.0" text="间隔" />
-                                          <Spinner fx:id="intervalSpinner" editable="true" layoutX="28.0" prefHeight="23.0" prefWidth="66.0">
-                                             <tooltip>
-                                                <Tooltip text="单位为秒" />
-                                             </tooltip>
-                                          </Spinner>
-                                          <Label layoutX="101.0" layoutY="4.0" text="次数" />
-                                          <Spinner fx:id="repeatCountSpinner" editable="true" layoutX="129.0" prefHeight="23.0" prefWidth="64.0">
-                                             <tooltip>
-                                                <Tooltip text="-1为永久任务" />
-                                             </tooltip>
-                                          </Spinner>
-                                       </children>
-                                    </AnchorPane>
-                                 </children>
-                              </AnchorPane>
+                              <Label text="自定义sql" />
+                              <TextField fx:id="querySqlTextField" promptText="请输入querySql" />
                               <Label text="同步数量" />
                               <Spinner fx:id="syncDataNumberSpinner" editable="true" prefHeight="23.0" prefWidth="65.0">
                                  <tooltip>
@@ -161,6 +134,23 @@
                                     <Tooltip text="勾选两边的表可将左边表的数据同步至右边（默认100条）" />
                                  </tooltip>
                               </Button>
+                              <HBox fx:id="actionScheduleHBox" alignment="CENTER_LEFT" spacing="5.0" />
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                           <children>
+                              <CheckBox fx:id="filterTimeCheckBox" mnemonicParsing="false" text="时间增量" />
+                              <TextField fx:id="filterStartTimeTextField" promptText="开始时间,格式yyyy-MM-dd-HH:mm:ss.SSS">
+                                 <tooltip>
+                                    <Tooltip text="开始时间,格式yyyy-MM-dd-HH:mm:ss.SSS" />
+                                 </tooltip>
+                              </TextField>
+                              <TextField fx:id="filterEntTimeTextField" promptText="结束时间,格式yyyy-MM-dd-HH:mm:ss.SSS" />
+                              <CheckBox fx:id="filterLongKeyCheckBox" mnemonicParsing="false" text="主键增量" />
+                              <TextField fx:id="filterLongKeyStartTextField" prefWidth="80.0" promptText="最小值" />
+                              <TextField fx:id="filterLongKeyEntTextField" prefWidth="80.0" promptText="最大值" />
+                              <Label text="自定义where" />
+                              <TextField fx:id="whereSqlTextField" promptText="输入自定义查询条件" />
                            </children>
                         </HBox>
                      </children>

@@ -27,3 +27,4 @@ RdbmsSyncTool是使用javaFx开发的关系型数据库同步工具[xJavaFxTool]
 - 0.0.3
   1. 添加多Schema输入框
   2. 添加表名过滤正则支持
+  3. 添加时间和主键过滤条件支持

@@ -25,6 +25,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -32,6 +33,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSetMetaData;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -315,6 +317,8 @@ public class RdbmsSyncToolService {
         DataSource dataSource2 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView2());
         String[] columnList = (String[]) tableInfoMap.get("columnList");
         String[] columnList2 = (String[]) tableInfoMap2.get("columnList");
+        String splitPk = tableInfoMap.get("splitPk").toString();
+        String where = tableInfoMap.get("where").toString();
         AtomicInteger dataNumber = new AtomicInteger();
         AtomicInteger dirtyDataNumber = new AtomicInteger();
         try {
@@ -327,6 +331,41 @@ public class RdbmsSyncToolService {
                     return;
                 }
                 querySql = String.format("select %s from %s ", String.join(",", columnList), tableName);
+                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getWhereSqlTextField().getText())) {
+                    querySql = querySql + " where " + rdbmsSyncToolController.getWhereSqlTextField().getText();
+                }
+                if (rdbmsSyncToolController.getFilterTimeCheckBox().isSelected()) {
+                    if (StringUtils.isEmpty(where)) {
+                        TooltipUtil.showToast("时间增量模式时，未勾选时间字段！");
+                        return;
+                    }
+                    Timestamp lastSyncTime = new Timestamp(Long.MIN_VALUE);
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterStartTimeTextField().getText())) {
+                        lastSyncTime = new Timestamp(DateUtils.parseDate(rdbmsSyncToolController.getFilterStartTimeTextField().getText(), "yyyy-MM-dd-HH:mm:ss.SSS").getTime());
+                    }
+                    Timestamp maxLastupdate = new Timestamp(253370980060114L);
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterEntTimeTextField().getText())) {
+                        maxLastupdate = new Timestamp(DateUtils.parseDate(rdbmsSyncToolController.getFilterEntTimeTextField().getText(), "yyyy-MM-dd-HH:mm:ss.SSS").getTime());
+                    }
+                    String whereSql = SqlUtil.getDataxWhereSql(rdbmsSyncToolController.getDbTypeText1().getValue(), where, lastSyncTime, maxLastupdate);
+                    querySql = querySql + (querySql.contains("where") ? " and " : " where ") + whereSql;
+                }
+                if (rdbmsSyncToolController.getFilterLongKeyCheckBox().isSelected()) {
+                    if (StringUtils.isEmpty(splitPk)) {
+                        TooltipUtil.showToast("主键增量模式时，未勾选主键！");
+                        return;
+                    }
+                    Long lastMaxValue = Long.MIN_VALUE;
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterLongKeyStartTextField().getText())) {
+                        lastMaxValue = new Long(rdbmsSyncToolController.getFilterLongKeyStartTextField().getText());
+                    }
+                    Long maxValue = Long.MAX_VALUE;
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterLongKeyEntTextField().getText())) {
+                        maxValue = new Long(rdbmsSyncToolController.getFilterLongKeyEntTextField().getText());
+                    }
+                    String whereSql = SqlUtil.getDataxWhereSql(splitPk, lastMaxValue, maxValue);
+                    querySql = querySql + (querySql.contains("where") ? " and " : " where ") + whereSql;
+                }
             }
             String insertSql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName2, String.join(",", columnList2), StringUtils.repeat("?", ",", columnList2.length));
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource1);

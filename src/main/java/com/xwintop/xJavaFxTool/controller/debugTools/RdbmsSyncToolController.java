@@ -4,6 +4,7 @@ import cn.hutool.core.swing.clipboard.ClipboardUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import com.xwintop.xJavaFxTool.services.debugTools.RdbmsSyncToolService;
 import com.xwintop.xJavaFxTool.tools.DataxJsonUtil;
+import com.xwintop.xJavaFxTool.utils.ActionScheduleUtil;
 import com.xwintop.xJavaFxTool.view.debugTools.RdbmsSyncToolView;
 import com.xwintop.xcore.util.javafx.JavaFxViewUtil;
 import com.xwintop.xcore.util.javafx.TextFieldInputHistoryDialog;
@@ -32,12 +33,11 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private TextFieldInputHistoryDialog textFieldInputHistoryDialog = new TextFieldInputHistoryDialog("./javaFxConfigure/dbUrlDocumentConfigure.yml", "host", "port", "dbName", "dbType", "userName", "password", "jdbcUrl", "schema");
     private ContextMenu contextMenu = new ContextMenu();
     private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm", "sqlite", "h2Embedded", "h2Server", "access", "db2"};
-    private String[] jsonNameSuffixStrings = new String[]{".json"};
     private String[] outputPathStrings = new String[]{"./executor"};
-    private String[] quartzChoiceBoxStrings = new String[]{"SIMPLE", "CRON"};
     private String[] tableTypeStrings = new String[]{"TABLE+VIEW", "TABLE", "VIEW", "SYSTEM_TABLE", "GLOBAL_TEMPORARY", "LOCAL_TEMPORARY", "ALIAS", "SYNONYM"};
     private String[] dataSourceTypeStrings = new String[]{"Druid", "Driver", "Simple", "Hikari"};
     private MaskerPane masker = new MaskerPane();
+    private ActionScheduleUtil actionScheduleUtil;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -59,7 +59,6 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         dbTypeText1.setValue(dbTypeStrings[0]);
         dbTypeText2.getItems().addAll(dbTypeStrings);
         dbTypeText2.setValue(dbTypeStrings[0]);
-        jsonNameSuffixComboBox.getItems().addAll(jsonNameSuffixStrings);
         outputPathComboBox.getItems().addAll(outputPathStrings);
 
         tableTreeView1.setCellFactory(CheckBoxTreeCell.<String>forTreeView());
@@ -72,15 +71,21 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         tableTreeView2.setShowRoot(true);
         JavaFxViewUtil.setSpinnerValueFactory(syncDataNumberSpinner, -1, Integer.MAX_VALUE, 10);
 
-        quartzChoiceBox.getItems().addAll(quartzChoiceBoxStrings);
-        quartzChoiceBox.getSelectionModel().select(0);
-        JavaFxViewUtil.setSpinnerValueFactory(intervalSpinner, 1, Integer.MAX_VALUE, 5);
-        JavaFxViewUtil.setSpinnerValueFactory(repeatCountSpinner, -1, Integer.MAX_VALUE, 0);
-
         tableTypeChoiceBox.getItems().addAll(tableTypeStrings);
         tableTypeChoiceBox.setValue(tableTypeChoiceBox.getItems().get(1));
         dataSourceTypeChoiceBox.getItems().addAll(dataSourceTypeStrings);
         dataSourceTypeChoiceBox.setValue(dataSourceTypeChoiceBox.getItems().get(0));
+
+        actionScheduleUtil = new ActionScheduleUtil();
+        actionScheduleUtil.setScheduleNode(actionScheduleHBox);
+        actionScheduleUtil.setJobAction(() -> {
+            try {
+                entDataToolService.testInstertSqlAction();
+            } catch (Exception e) {
+                log.error("同步数据失败：", e);
+                TooltipUtil.showToast("同步数据失败：" + e.getMessage());
+            }
+        });
     }
 
     private void initEvent() {
@@ -88,15 +93,6 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         addUrlDocumentDialogController(hostText2);
         addTableTreeViewMouseClicked(tableTreeView1);
         addTableTreeViewMouseClicked(tableTreeView2);
-        quartzChoiceBox.valueProperty().addListener((observable, oldValue, newValue) -> {
-            if (quartzChoiceBoxStrings[0].equals(newValue)) {
-                cronTextField.setVisible(false);
-                simpleScheduleAnchorPane.setVisible(true);
-            } else if (quartzChoiceBoxStrings[1].equals(newValue)) {
-                cronTextField.setVisible(true);
-                simpleScheduleAnchorPane.setVisible(false);
-            }
-        });
         dbTypeText1.valueProperty().addListener((observable, oldValue, newValue) -> {
             portText1.setText(DataxJsonUtil.getDbDefaultPort(newValue));
         });
@@ -298,8 +294,8 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
         try {
             entDataToolService.testInstertSqlAction();
         } catch (Exception e) {
-            log.error("测试失败：", e);
-            TooltipUtil.showToast("测试失败：" + e.getMessage());
+            log.error("同步数据失败：", e);
+            TooltipUtil.showToast("同步数据失败：" + e.getMessage());
         }
     }
 }
