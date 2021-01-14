@@ -18,7 +18,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="525.0" prefWidth="1005.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController">
+<AnchorPane prefHeight="653.0" prefWidth="1226.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController">
    <children>
       <StackPane fx:id="loadingStackPane" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
@@ -28,57 +28,59 @@
                      <children>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <Label text="源端库" />
-                              <Label text="ip" />
-                              <TextField fx:id="hostText1" text="127.0.0.1" />
-                              <Label text="端口" />
-                              <TextField fx:id="portText1" prefWidth="46.0" text="3306">
+                              <Label minWidth="40.0" text="源端库" />
+                              <Label minWidth="10.0" text="ip" />
+                              <TextField fx:id="hostText1" prefWidth="130.0" text="127.0.0.1" />
+                              <Label minWidth="30.0" text="端口" />
+                              <TextField fx:id="portText1" prefWidth="60.0" text="3306">
                                  <tooltip>
                                     <Tooltip text="mysql：3306  oracle:1521  sqlserver:1433  postgreSql:5432" />
                                  </tooltip></TextField>
-                              <Label text="dbName" />
-                              <TextField fx:id="dbNameText1" />
-                              <Label text="类型" />
+                              <Label minWidth="50.0" text="dbName" />
+                              <TextField fx:id="dbNameText1" prefWidth="100.0" />
+                              <Label minWidth="30.0" text="类型" />
                               <ChoiceBox fx:id="dbTypeText1" prefWidth="66.0" />
-                              <Label text="用户名" />
+                              <Label minWidth="40.0" text="用户名" />
                               <TextField fx:id="userNameText1" text="root" />
-                              <Label text="密码" />
+                              <Label minWidth="30.0" text="密码" />
                               <StackPane>
                                  <children>
                                     <PasswordField fx:id="pwdText1" text="" />
                                  </children>
                               </StackPane>
-                              <TextField fx:id="jdbcUrlField1" promptText="jdbcUrl" disable="true">
+                              <TextField fx:id="jdbcUrlField1" promptText="jdbcUrl">
                                  <tooltip>
                                     <Tooltip text="jdbc:mysql://127.0.0.1:3306/test   jdbc:sqlserver://127.0.0.1:1433;DatabaseName=test    jdbc:oracle:thin:@127.0.0.1:1521/test    jdbc:postgresql://127.0.0.1:5432/test" />
                                  </tooltip></TextField>
-                              <Button fx:id="connectButton1" mnemonicParsing="false" onAction="#connectAction1" text="连接" />
+                              <TextField fx:id="schemaTextField1" prefWidth="120.0" promptText="schema" />
+                              <Button fx:id="connectButton1" minWidth="50.0" mnemonicParsing="false" onAction="#connectAction1" text="连接" />
                            </children>
                         </HBox>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <Label text="目标库" />
-                              <Label text="ip" />
-                              <TextField fx:id="hostText2" text="127.0.0.1" />
-                              <Label text="端口" />
-                              <TextField fx:id="portText2" prefWidth="46.0" text="3306" />
-                              <Label text="dbName" />
-                              <TextField fx:id="dbNameText2" text="wms" />
-                              <Label text="类型" />
+                              <Label minWidth="40.0" text="目标库" />
+                              <Label minWidth="10.0" text="ip" />
+                              <TextField fx:id="hostText2" prefWidth="130.0" text="127.0.0.1" />
+                              <Label minWidth="30.0" text="端口" />
+                              <TextField fx:id="portText2" prefWidth="60.0" text="3306" />
+                              <Label minWidth="50.0" text="dbName" />
+                              <TextField fx:id="dbNameText2" prefWidth="100.0" text="wms" />
+                              <Label minWidth="30.0" text="类型" />
                               <ChoiceBox fx:id="dbTypeText2" prefWidth="66.0" />
-                              <Label text="用户名" />
+                              <Label minWidth="40.0" text="用户名" />
                               <TextField fx:id="userNameText2" text="root" />
-                              <Label text="密码" />
+                              <Label minWidth="30.0" text="密码" />
                               <StackPane>
                                  <children>
                                     <PasswordField fx:id="pwdText2" text="easipass" />
                                  </children>
                               </StackPane>
-                              <TextField fx:id="jdbcUrlField2" promptText="jdbcUrl" disable="true">
+                              <TextField fx:id="jdbcUrlField2" promptText="jdbcUrl">
                                  <tooltip>
                                     <Tooltip text="jdbc:oracle:thin:@127.0.0.1:1521/test    jdbc:postgresql://127.0.0.1:5432/test" />
                                  </tooltip></TextField>
-                              <Button fx:id="connectButton2" mnemonicParsing="false" onAction="#connectAction2" text="连接" />
+                              <TextField fx:id="schemaTextField2" prefWidth="120.0" promptText="schema" />
+                              <Button fx:id="connectButton2" minWidth="50.0" mnemonicParsing="false" onAction="#connectAction2" text="连接" />
                            </children>
                         </HBox>
                      </children>
@@ -103,13 +105,11 @@
                      <children>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <Label text="自定义sql" />
-                              <TextField fx:id="querySqlTextField" promptText="请输入querySql" />
-                              <ComboBox fx:id="jsonNameSuffixComboBox" editable="true" prefWidth="130.0" promptText="自定义文件后缀名">
+                              <CheckBox fx:id="isShowCheckBox" mnemonicParsing="false" selected="true" text="预览" />
+                              <TextField fx:id="ignoreTableNameTextField" promptText="过滤出表名">
                                  <tooltip>
-                                    <Tooltip text="自定义文件名后缀，默认为各阶段配置的默认后缀" />
-                                 </tooltip>
-                              </ComboBox>
+                                    <Tooltip text="加载时过滤出表名(用逗号分隔,支持正则表达式)" />
+                                 </tooltip></TextField>
                               <ComboBox fx:id="outputPathComboBox" editable="true" prefWidth="120.0" promptText="输出路径">
                                  <tooltip>
                                     <Tooltip text="自定义输出路径，默认为./executor" />
@@ -121,31 +121,8 @@
                         </HBox>
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                            <children>
-                              <CheckBox fx:id="isShowCheckBox" mnemonicParsing="false" selected="true" text="预览" />
-                              <TextField fx:id="schemaTextField" promptText="schema" />
-                              <TextField fx:id="ignoreTableNameTextField" promptText="加载时过滤出表名" />
-                              <ChoiceBox fx:id="quartzChoiceBox" prefHeight="23.0" prefWidth="102.0" />
-                              <AnchorPane prefHeight="23.0" prefWidth="200.0">
-                                 <children>
-                                    <TextField fx:id="cronTextField" prefHeight="23.0" prefWidth="188.0" text="0 0 1 * * ?" visible="false" />
-                                    <AnchorPane fx:id="simpleScheduleAnchorPane" layoutX="2.0">
-                                       <children>
-                                          <Label layoutY="5.0" text="间隔" />
-                                          <Spinner fx:id="intervalSpinner" editable="true" layoutX="28.0" prefHeight="23.0" prefWidth="66.0">
-                                             <tooltip>
-                                                <Tooltip text="单位为秒" />
-                                             </tooltip>
-                                          </Spinner>
-                                          <Label layoutX="101.0" layoutY="4.0" text="次数" />
-                                          <Spinner fx:id="repeatCountSpinner" editable="true" layoutX="129.0" prefHeight="23.0" prefWidth="64.0">
-                                             <tooltip>
-                                                <Tooltip text="-1为永久任务" />
-                                             </tooltip>
-                                          </Spinner>
-                                       </children>
-                                    </AnchorPane>
-                                 </children>
-                              </AnchorPane>
+                              <Label text="自定义sql" />
+                              <TextField fx:id="querySqlTextField" promptText="请输入querySql" />
                               <Label text="同步数量" />
                               <Spinner fx:id="syncDataNumberSpinner" editable="true" prefHeight="23.0" prefWidth="65.0">
                                  <tooltip>
@@ -157,6 +134,23 @@
                                     <Tooltip text="勾选两边的表可将左边表的数据同步至右边（默认100条）" />
                                  </tooltip>
                               </Button>
+                              <HBox fx:id="actionScheduleHBox" alignment="CENTER_LEFT" spacing="5.0" />
+                           </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                           <children>
+                              <CheckBox fx:id="filterTimeCheckBox" mnemonicParsing="false" text="时间增量" />
+                              <TextField fx:id="filterStartTimeTextField" promptText="开始时间,格式yyyy-MM-dd-HH:mm:ss.SSS">
+                                 <tooltip>
+                                    <Tooltip text="开始时间,格式yyyy-MM-dd-HH:mm:ss.SSS" />
+                                 </tooltip>
+                              </TextField>
+                              <TextField fx:id="filterEntTimeTextField" promptText="结束时间,格式yyyy-MM-dd-HH:mm:ss.SSS" />
+                              <CheckBox fx:id="filterLongKeyCheckBox" mnemonicParsing="false" text="主键增量" />
+                              <TextField fx:id="filterLongKeyStartTextField" prefWidth="80.0" promptText="最小值" />
+                              <TextField fx:id="filterLongKeyEntTextField" prefWidth="80.0" promptText="最大值" />
+                              <Label text="自定义where" />
+                              <TextField fx:id="whereSqlTextField" promptText="输入自定义查询条件" />
                            </children>
                         </HBox>
                      </children>

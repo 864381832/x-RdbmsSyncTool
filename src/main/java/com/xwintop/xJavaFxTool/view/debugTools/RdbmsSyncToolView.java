@@ -4,6 +4,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import lombok.Getter;
 import lombok.Setter;
@@ -56,27 +57,33 @@ public abstract class RdbmsSyncToolView implements Initializable {
     @FXML
     protected TextField querySqlTextField;
     @FXML
-    protected ComboBox<String> jsonNameSuffixComboBox;
-    @FXML
     protected ComboBox<String> outputPathComboBox;
     @FXML
     protected StackPane loadingStackPane;
     @FXML
-    protected TextField schemaTextField;
+    protected TextField schemaTextField1;
+    @FXML
+    protected TextField schemaTextField2;
     @FXML
     protected TextField ignoreTableNameTextField;
-    @FXML
-    protected TextField cronTextField;
-    @FXML
-    protected ChoiceBox<String> quartzChoiceBox;
-    @FXML
-    protected AnchorPane simpleScheduleAnchorPane;
-    @FXML
-    protected Spinner<Integer> intervalSpinner;
-    @FXML
-    protected Spinner<Integer> repeatCountSpinner;
     @FXML
     protected ChoiceBox<String> tableTypeChoiceBox;
     @FXML
     protected ChoiceBox<String> dataSourceTypeChoiceBox;
+    @FXML
+    protected CheckBox filterTimeCheckBox;
+    @FXML
+    protected TextField filterStartTimeTextField;
+    @FXML
+    protected TextField filterEntTimeTextField;
+    @FXML
+    protected CheckBox filterLongKeyCheckBox;
+    @FXML
+    protected TextField filterLongKeyStartTextField;
+    @FXML
+    protected TextField whereSqlTextField;
+    @FXML
+    protected TextField filterLongKeyEntTextField;
+    @FXML
+    protected HBox actionScheduleHBox;
 }

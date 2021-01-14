@@ -25,6 +25,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -32,6 +33,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSetMetaData;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,10 +62,11 @@ public class RdbmsSyncToolService {
             }
             dataSource = SqlUtil.getDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, jdbcUrl, rdbmsSyncToolController.getDataSourceTypeChoiceBox().getValue());
             try {
+                String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
                 if ("TABLE+VIEW".equals(rdbmsSyncToolController.getTableTypeChoiceBox().getValue())) {
-                    tableNames = MetaUtil.getTables(dataSource, DataxJsonUtil.convertDatabaseCharsetType(dbUserName, rdbmsSyncToolController.getSchemaTextField().getText(), dbType), TableType.TABLE, TableType.VIEW);
+                    tableNames = MetaUtil.getTables(dataSource, DataxJsonUtil.convertDatabaseCharsetType(dbUserName, schema, dbType), TableType.TABLE, TableType.VIEW);
                 } else {
-                    tableNames = MetaUtil.getTables(dataSource, DataxJsonUtil.convertDatabaseCharsetType(dbUserName, rdbmsSyncToolController.getSchemaTextField().getText(), dbType), TableType.valueOf(rdbmsSyncToolController.getTableTypeChoiceBox().getValue()));
+                    tableNames = MetaUtil.getTables(dataSource, DataxJsonUtil.convertDatabaseCharsetType(dbUserName, schema, dbType), TableType.valueOf(rdbmsSyncToolController.getTableTypeChoiceBox().getValue()));
                 }
             } catch (Throwable e) {
                 log.error("getTables is error!尝试使用sql语句获取", e);
@@ -97,8 +100,17 @@ public class RdbmsSyncToolService {
             Connection connection = dataSource.getConnection();
             try {
                 for (String tableName : tableNames) {
-                    if (ignoreTableNameList != null && !ignoreTableNameList.contains(tableName.toLowerCase())) {
-                        continue;
+                    if (ignoreTableNameList != null) {
+                        boolean isIgnore = true;
+                        for (String ignoreTableName : ignoreTableNameList) {
+                            if (tableName.toLowerCase().matches(ignoreTableName)) {
+                                isIgnore = false;
+                                break;
+                            }
+                        }
+                        if (isIgnore) {
+                            continue;
+                        }
                     }
                     final CheckBoxTreeItem<String> tableNameTreeItem = new CheckBoxTreeItem<>(tableName);
                     Table table = new Table(tableName);
@@ -238,8 +250,9 @@ public class RdbmsSyncToolService {
                 tableString.append("COMMENT = '" + table.getComment() + "'\n" +
                         "ROW_FORMAT = COMPACT;");
             } else {
-                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                    tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+                String schema = ("源端库表".equals(tableNameTreeItem.getParent().getValue())) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
+                if (StringUtils.isNotEmpty(schema)) {
+                    tableName = schema + "." + tableName;
                 }
                 tableString.append("CREATE TABLE " + tableName + "(\n");
                 StringBuffer commentStr = new StringBuffer();
@@ -304,6 +317,8 @@ public class RdbmsSyncToolService {
         DataSource dataSource2 = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, rdbmsSyncToolController.getTableTreeView2());
         String[] columnList = (String[]) tableInfoMap.get("columnList");
         String[] columnList2 = (String[]) tableInfoMap2.get("columnList");
+        String splitPk = tableInfoMap.get("splitPk").toString();
+        String where = tableInfoMap.get("where").toString();
         AtomicInteger dataNumber = new AtomicInteger();
         AtomicInteger dirtyDataNumber = new AtomicInteger();
         try {
@@ -316,6 +331,41 @@ public class RdbmsSyncToolService {
                     return;
                 }
                 querySql = String.format("select %s from %s ", String.join(",", columnList), tableName);
+                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getWhereSqlTextField().getText())) {
+                    querySql = querySql + " where " + rdbmsSyncToolController.getWhereSqlTextField().getText();
+                }
+                if (rdbmsSyncToolController.getFilterTimeCheckBox().isSelected()) {
+                    if (StringUtils.isEmpty(where)) {
+                        TooltipUtil.showToast("时间增量模式时，未勾选时间字段！");
+                        return;
+                    }
+                    Timestamp lastSyncTime = new Timestamp(Long.MIN_VALUE);
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterStartTimeTextField().getText())) {
+                        lastSyncTime = new Timestamp(DateUtils.parseDate(rdbmsSyncToolController.getFilterStartTimeTextField().getText(), "yyyy-MM-dd-HH:mm:ss.SSS").getTime());
+                    }
+                    Timestamp maxLastupdate = new Timestamp(253370980060114L);
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterEntTimeTextField().getText())) {
+                        maxLastupdate = new Timestamp(DateUtils.parseDate(rdbmsSyncToolController.getFilterEntTimeTextField().getText(), "yyyy-MM-dd-HH:mm:ss.SSS").getTime());
+                    }
+                    String whereSql = SqlUtil.getDataxWhereSql(rdbmsSyncToolController.getDbTypeText1().getValue(), where, lastSyncTime, maxLastupdate);
+                    querySql = querySql + (querySql.contains("where") ? " and " : " where ") + whereSql;
+                }
+                if (rdbmsSyncToolController.getFilterLongKeyCheckBox().isSelected()) {
+                    if (StringUtils.isEmpty(splitPk)) {
+                        TooltipUtil.showToast("主键增量模式时，未勾选主键！");
+                        return;
+                    }
+                    Long lastMaxValue = Long.MIN_VALUE;
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterLongKeyStartTextField().getText())) {
+                        lastMaxValue = new Long(rdbmsSyncToolController.getFilterLongKeyStartTextField().getText());
+                    }
+                    Long maxValue = Long.MAX_VALUE;
+                    if (StringUtils.isNotEmpty(rdbmsSyncToolController.getFilterLongKeyEntTextField().getText())) {
+                        maxValue = new Long(rdbmsSyncToolController.getFilterLongKeyEntTextField().getText());
+                    }
+                    String whereSql = SqlUtil.getDataxWhereSql(splitPk, lastMaxValue, maxValue);
+                    querySql = querySql + (querySql.contains("where") ? " and " : " where ") + whereSql;
+                }
             }
             String insertSql = String.format("INSERT INTO %s (%s) VALUES (%s)", tableName2, String.join(",", columnList2), StringUtils.repeat("?", ",", columnList2.length));
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource1);
@@ -375,10 +425,11 @@ public class RdbmsSyncToolService {
 
     public void showTableData(String tableName, TreeView<String> tableTreeView) {
         DataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
+        String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
         try {
             List<Entity> entityList = null;
-            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            if (StringUtils.isNotEmpty(schema)) {
+                tableName = schema + "." + tableName;
             }
             if (rdbmsSyncToolController.getSyncDataNumberSpinner().getValue() == -1) {
                 entityList = Db.use(dataSource).findAll(tableName);
@@ -441,8 +492,9 @@ public class RdbmsSyncToolService {
     }
 
     public void selectTableCount(String tableName, TreeView<String> tableTreeView) {
+        String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -461,13 +513,14 @@ public class RdbmsSyncToolService {
             tableView.getColumns().add(countColumn);
             tableView.setItems(tableData);
             for (String selectTableName : selectTableNameList) {
-                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                    selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
+                if (StringUtils.isNotEmpty(schema)) {
+                    selectTableName = schema + "." + selectTableName;
                 }
                 Map<String, String> tableMap = new HashMap<>();
                 tableMap.put("table", selectTableName);
-                tableMap.put("sql", "select count(*) from " + selectTableName + ";");
-                List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, "select count(*) from " + selectTableName);
+                String sql = "select count(*) from " + selectTableName;
+                tableMap.put("sql", sql);
+                List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
                 if (queryData != null && !queryData.isEmpty()) {
                     Map<String, Object> map = queryData.get(0);
                     tableMap.put("count", "" + map.values().toArray()[0]);
@@ -476,34 +529,36 @@ public class RdbmsSyncToolService {
             }
             JavaFxViewUtil.openNewWindow("查询表数量", tableView);
         } else {
-            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            if (StringUtils.isNotEmpty(schema)) {
+                tableName = schema + "." + tableName;
             }
-            List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, "select count(*) from " + tableName);
+            String sql = "select count(*) from " + tableName;
+            List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
             if (queryData != null && !queryData.isEmpty()) {
                 Map<String, Object> map = queryData.get(0);
-                AlertUtil.showInfoAlert(tableName, "select count(*) from " + tableName + "\n\n数量：" + map.values().toArray()[0]);
+                AlertUtil.showInfoAlert(tableName, sql + "\n\n数量：" + map.values().toArray()[0]);
             }
         }
     }
 
     public void copySelectTableCount(String tableName, TreeView<String> tableTreeView) {
+        String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
         StringBuffer stringBuffer = new StringBuffer();
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
             }
             for (String selectTableName : selectTableNameList) {
-                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                    selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
+                if (StringUtils.isNotEmpty(schema)) {
+                    selectTableName = schema + "." + selectTableName;
                 }
                 stringBuffer.append("select count(*) from " + selectTableName + ";\n");
             }
         } else {
-            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            if (StringUtils.isNotEmpty(schema)) {
+                tableName = schema + "." + tableName;
             }
             stringBuffer.append("select count(*) from " + tableName + ";\n");
         }
@@ -512,6 +567,7 @@ public class RdbmsSyncToolService {
     }
 
     public void selectTableMax(String tableName, TreeView<String> tableTreeView, TreeItem selectedItem) {
+        String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
         if ("*".equals(tableName)) {
             List<CheckBoxTreeItem<String>> checkBoxTreeItemList = getCheckBoxTreeItemListByTreeView(tableTreeView);
             if (checkBoxTreeItemList.isEmpty()) {
@@ -533,13 +589,13 @@ public class RdbmsSyncToolService {
             tableView.setItems(tableData);
             for (CheckBoxTreeItem<String> tableNameTreeItem : checkBoxTreeItemList) {
                 String selectTableName = tableNameTreeItem.getValue();
-                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                    selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
+                if (StringUtils.isNotEmpty(schema)) {
+                    selectTableName = schema + "." + selectTableName;
                 }
                 Map tableInfoMap = getTableInfoMap(tableNameTreeItem.getChildren());
                 Map<String, String> tableMap = new HashMap<>();
                 tableMap.put("table", selectTableName);
-                String sql = "select max(" + tableInfoMap.get("where") + ") from " + selectTableName + ";";
+                String sql = "select max(" + tableInfoMap.get("where") + ") from " + selectTableName;
                 tableMap.put("sql", sql);
                 List<Map<String, Object>> queryData = SqlUtil.executeQuerySql(rdbmsSyncToolController, tableTreeView, sql);
                 if (queryData != null && !queryData.isEmpty()) {
@@ -550,8 +606,8 @@ public class RdbmsSyncToolService {
             }
             JavaFxViewUtil.openNewWindow("查询表字段最大值", tableView);
         } else {
-            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            if (StringUtils.isNotEmpty(schema)) {
+                tableName = schema + "." + tableName;
             }
             Map tableInfoMap = getTableInfoMap(selectedItem.getChildren());
             String sql = "select max(" + tableInfoMap.get("where") + ") from " + tableName;
@@ -564,6 +620,7 @@ public class RdbmsSyncToolService {
     }
 
     public void copySelectTableMax(String tableName, TreeView<String> tableTreeView, TreeItem selectedItem) {
+        String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
         StringBuffer stringBuffer = new StringBuffer();
         if ("*".equals(tableName)) {
             List<CheckBoxTreeItem<String>> checkBoxTreeItemList = getCheckBoxTreeItemListByTreeView(tableTreeView);
@@ -573,15 +630,15 @@ public class RdbmsSyncToolService {
             }
             for (CheckBoxTreeItem<String> tableNameTreeItem : checkBoxTreeItemList) {
                 String selectTableName = tableNameTreeItem.getValue();
-                if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                    selectTableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + selectTableName;
+                if (StringUtils.isNotEmpty(schema)) {
+                    selectTableName = schema + "." + selectTableName;
                 }
                 Map tableInfoMap = getTableInfoMap(tableNameTreeItem.getChildren());
                 stringBuffer.append("select max(" + tableInfoMap.get("where") + ") from " + selectTableName + ";\n");
             }
         } else {
-            if (StringUtils.isNotEmpty(rdbmsSyncToolController.getSchemaTextField().getText())) {
-                tableName = rdbmsSyncToolController.getSchemaTextField().getText() + "." + tableName;
+            if (StringUtils.isNotEmpty(schema)) {
+                tableName = schema + "." + tableName;
             }
             Map tableInfoMap = getTableInfoMap(selectedItem.getChildren());
             stringBuffer.append("select max(" + tableInfoMap.get("where") + ") from " + tableName + ";");
@@ -596,7 +653,7 @@ public class RdbmsSyncToolService {
             return;
         }
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -615,7 +672,7 @@ public class RdbmsSyncToolService {
             return;
         }
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -634,7 +691,7 @@ public class RdbmsSyncToolService {
             return;
         }
         if ("*".equals(tableName)) {
-            List<String> selectTableNameList = getSelectTableNameList(tableTreeView);
+            List<String> selectTableNameList = getSelectNameList(tableTreeView.getRoot());
             if (selectTableNameList.isEmpty()) {
                 TooltipUtil.showToast("未勾选表！");
                 return;
@@ -668,9 +725,9 @@ public class RdbmsSyncToolService {
         SqlUtil.executeSql(rdbmsSyncToolController, tableTreeView, sqlSb);
     }
 
-    public List<String> getSelectTableNameList(TreeView<String> tableTreeView) {
+    public static List<String> getSelectNameList(TreeItem<String> rootTreeItem) {
         List<String> selectTableNameList = new ArrayList<>();
-        for (TreeItem<String> treeItem : tableTreeView.getRoot().getChildren()) {
+        for (TreeItem<String> treeItem : rootTreeItem.getChildren()) {
             CheckBoxTreeItem<String> tableNameTreeItem = (CheckBoxTreeItem<String>) treeItem;
             if (tableNameTreeItem.isSelected()) {
                 selectTableNameList.add(tableNameTreeItem.getValue());

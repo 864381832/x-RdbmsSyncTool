@@ -6,9 +6,11 @@ import com.alibaba.druid.util.JdbcUtils;
 import com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController;
 import com.xwintop.xJavaFxTool.services.debugTools.RdbmsSyncToolService;
 import com.xwintop.xcore.util.javafx.TooltipUtil;
+import com.zaxxer.hikari.HikariDataSource;
 import javafx.scene.control.CheckBoxTreeItem;
 import javafx.scene.control.TreeView;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -16,10 +18,9 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
+import java.io.Closeable;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,6 +50,8 @@ public class SqlUtil {
             dataSource = new DriverManagerDataSource(DataxJsonUtil.getJdbcUrl(jdbcUrl, dbType, dbIp, dbPort, dbName), dbUserName, dbUserPassword);
         } else if ("Simple".equals(dataSourceType)) {
             dataSource = getSimpleDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, jdbcUrl);
+        } else if ("Hikari".equals(dataSourceType)) {
+            dataSource = getHikariDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, jdbcUrl);
         }
         return dataSource;
     }
@@ -66,6 +69,22 @@ public class SqlUtil {
             e.printStackTrace();
         }
         SimpleDataSource dataSource = new SimpleDataSource(jdbcUrl, dbUserName, dbUserPassword, driver);
+        return dataSource;
+    }
+
+    public static HikariDataSource getHikariDataSource(String dbType, String dbIp, String dbPort, String dbName, String dbUserName, String dbUserPassword, String jdbcUrl) {
+        jdbcUrl = DataxJsonUtil.getJdbcUrl(jdbcUrl, dbType, dbIp, dbPort, dbName);
+        String driver = null;
+        try {
+            driver = JdbcUtils.getDriverClassName(jdbcUrl);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        HikariDataSource dataSource = new HikariDataSource();
+        dataSource.setJdbcUrl(jdbcUrl);
+        dataSource.setUsername(dbUserName);
+        dataSource.setPassword(dbUserPassword);
+        dataSource.setDriverClassName(driver);
         return dataSource;
     }
 
@@ -100,35 +119,11 @@ public class SqlUtil {
             log.error("executeSql:" + sql + " 错误：", e);
             TooltipUtil.showToast("executeSql:" + sql + " 错误：" + e.getMessage());
         } finally {
-//            JdbcUtils.close(dataSource);
+            if (dataSource instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource);
+            }
         }
     }
-
-//    public static List<String> showSqlServerTables(Connection conn, String dbType) throws SQLException {
-//        List<String> tables = new ArrayList<String>();
-//        Statement stmt = null;
-//        ResultSet rs = null;
-//        try {
-//            stmt = conn.createStatement();
-//            if ("sqlserver".equals(dbType)) {
-//                rs = stmt.executeQuery("select c.name from sys.objects c where c.type='u'");
-//            } else if ("sqlserverold".equals(dbType)) {
-//                rs = stmt.executeQuery("select c.name from sysobjects c where c.type='u'");
-//            } else if ("access".equals(dbType)) {
-//                rs = stmt.executeQuery("select table_name from information_schema.tables");
-//            } else {
-//                return tables;
-//            }
-//            while (rs.next()) {
-//                String tableName = rs.getString(1);
-//                tables.add(tableName);
-//            }
-//        } finally {
-//            JdbcUtils.close(rs);
-//            JdbcUtils.close(stmt);
-//        }
-//        return tables;
-//    }
 
     public static List<String> showSqlServerTables(DataSource dataSource, String dbType) throws SQLException {
         List<String> tables = new ArrayList<>();
@@ -156,7 +151,9 @@ public class SqlUtil {
             log.error("executeQuerySql:" + sql + " 错误：", e);
             TooltipUtil.showToast("executeQuerySql:" + sql + " 错误：" + e.getMessage());
         } finally {
-//            JdbcUtils.close(dataSource);
+            if (dataSource instanceof DruidDataSource) {
+                JdbcUtils.close((Closeable) dataSource);
+            }
         }
         return null;
     }
@@ -199,5 +196,30 @@ public class SqlUtil {
                 }
             }
         }
+    }
+
+    public static String getDataxWhereSql(String filterLongKeyColumn, Long maxKeyValue, Long lastMaxValue) {
+        return String.format(" (%s < %s AND %s <= %s) ", maxKeyValue, filterLongKeyColumn, filterLongKeyColumn, lastMaxValue);
+    }
+
+    public static String getDataxWhereSql(String DB_TYPE, String filterTimeColumn, Timestamp lastSyncTime, Timestamp maxLastupdate) {
+        StringBuffer stringBuffer = new StringBuffer(filterTimeColumn);
+        if ("sqlserver".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > CONVERT(datetime,'" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd HH:mm:ss.SSS") + "',21) and ");
+            stringBuffer.append(filterTimeColumn).append(" <= CONVERT(datetime,'" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd HH:mm:ss.SSS") + "',21)");
+        } else if ("oracle".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > TO_TIMESTAMP('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd-HH:mm:ss") + String.format(".%09d", lastSyncTime.getNanos()) + "','yyyy-MM-dd-hh24:mi:ss.ff9') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= TO_TIMESTAMP('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd-HH:mm:ss") + String.format(".%09d", maxLastupdate.getNanos()) + "','yyyy-MM-dd-hh24:mi:ss.ff9')");
+        } else if ("mysql".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > str_to_date('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd HH:mm:ss.SSS") + "','%Y-%m-%d %H:%i:%s.%f') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= str_to_date('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd HH:mm:ss.SSS") + "','%Y-%m-%d %H:%i:%s.%f')");
+        } else if ("postgresq".equalsIgnoreCase(DB_TYPE)) {
+            stringBuffer.append(" > to_timestamp('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd-HH:mm:ss.SSS") + "','yyyy-MM-dd-hh24:MI:ss.MS') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= to_timestamp('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd-HH:mm:ss.SSS") + "','yyyy-MM-dd-hh24:MI:ss.MS')");
+        } else {
+            stringBuffer.append(" > to_timestamp('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd-HH:mm:ss") + "','yyyy-MM-dd-hh24:MI:ss') and ");
+            stringBuffer.append(filterTimeColumn).append(" <= to_timestamp('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd-HH:mm:ss") + "','yyyy-MM-dd-hh24:MI:ss')");
+        }
+        return stringBuffer.toString();
     }
 }
