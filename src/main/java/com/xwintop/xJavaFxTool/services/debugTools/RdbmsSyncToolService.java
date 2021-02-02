@@ -1,8 +1,6 @@
 package com.xwintop.xJavaFxTool.services.debugTools;
 
 import cn.hutool.core.swing.clipboard.ClipboardUtil;
-import cn.hutool.db.Db;
-import cn.hutool.db.Entity;
 import cn.hutool.db.meta.Column;
 import cn.hutool.db.meta.MetaUtil;
 import cn.hutool.db.meta.Table;
@@ -52,17 +50,12 @@ public class RdbmsSyncToolService {
     }
 
     //连接数据库
-    public void connectAction(String dbType, String dbIp, String dbPort, String dbName, String dbUserName, String dbUserPassword, TreeView<String> tableTreeView) throws Exception {
+    public void connectAction(String dbType, String dbIp, String dbPort, String dbName, String dbUserName, String dbUserPassword, String jdbcUrl, String schema, TreeView<String> tableTreeView) throws Exception {
         DataSource dataSource = null;
         try {
             List<String> tableNames = null;
-            String jdbcUrl = rdbmsSyncToolController.getJdbcUrlField1().getText();
-            if (tableTreeView == rdbmsSyncToolController.getTableTreeView2()) {
-                jdbcUrl = rdbmsSyncToolController.getJdbcUrlField2().getText();
-            }
             dataSource = SqlUtil.getDataSource(dbType, dbIp, dbPort, dbName, dbUserName, dbUserPassword, jdbcUrl, rdbmsSyncToolController.getDataSourceTypeChoiceBox().getValue());
             try {
-                String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
                 if ("TABLE+VIEW".equals(rdbmsSyncToolController.getTableTypeChoiceBox().getValue())) {
                     tableNames = MetaUtil.getTables(dataSource, DataxJsonUtil.convertDatabaseCharsetType(dbUserName, schema, dbType), TableType.TABLE, TableType.VIEW);
                 } else {
@@ -97,63 +90,61 @@ public class RdbmsSyncToolService {
                 String[] ignoreTableNames = rdbmsSyncToolController.getIgnoreTableNameTextField().getText().toLowerCase().trim().split(",");
                 ignoreTableNameList = Arrays.asList(ignoreTableNames);
             }
-            Connection connection = dataSource.getConnection();
-            try {
-                for (String tableName : tableNames) {
-                    if (ignoreTableNameList != null) {
-                        boolean isIgnore = true;
-                        for (String ignoreTableName : ignoreTableNameList) {
-                            if (tableName.toLowerCase().matches(ignoreTableName)) {
-                                isIgnore = false;
-                                break;
-                            }
-                        }
-                        if (isIgnore) {
-                            continue;
+            for (String tableName : tableNames) {
+                if (ignoreTableNameList != null) {
+                    boolean isIgnore = true;
+                    for (String ignoreTableName : ignoreTableNameList) {
+                        if (tableName.toLowerCase().matches(ignoreTableName)) {
+                            isIgnore = false;
+                            break;
                         }
                     }
-                    final CheckBoxTreeItem<String> tableNameTreeItem = new CheckBoxTreeItem<>(tableName);
-                    Table table = new Table(tableName);
-                    try {
-                        table = MetaUtil.getTableMeta(dataSource, tableName);
-                    } catch (Throwable e) {
-                        log.error("获取表结构失败！使用jdbc原生方法获取" + tableName, e);
-                        String querySql = String.format("select * from %s where 1=2", tableName);
-                        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-                        Table finalTable = table;
-                        jdbcTemplate.query(querySql, rs -> {
-                            ResultSetMetaData rsMetaData = rs.getMetaData();
-                            for (int i = 1, len = rsMetaData.getColumnCount(); i <= len; i++) {
-                                Column column = new Column();
-                                column.setName(rsMetaData.getColumnName(i));
-                                column.setType(rsMetaData.getColumnType(i));
-                                column.setSize(rsMetaData.getColumnDisplaySize(i));
-                                column.setComment(rsMetaData.getColumnLabel(i));
-                                finalTable.setColumn(column);
-                            }
-                            return null;
-                        });
+                    if (isIgnore) {
+                        continue;
                     }
-                    if (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) {
-                        tableMap.put(tableName, table);
-                    } else {
-                        tableMap2.put(tableName, table);
-                    }
-                    for (Column column : table.getColumns()) {
-                        CheckBox isPkCheckBox = new CheckBox("Pk");
-                        if (table.getPkNames().contains(column.getName())) {
-                            isPkCheckBox.setSelected(true);
-                        }
-                        CheckBox isTimeCheckBox = new CheckBox("Time");
-                        HBox hBox = new HBox();
-                        hBox.getChildren().addAll(isPkCheckBox, isTimeCheckBox);
-                        final CheckBoxTreeItem<String> columnNameTreeItem = new CheckBoxTreeItem<>(column.getName(), hBox);
-                        tableNameTreeItem.getChildren().add(columnNameTreeItem);
-                    }
-                    treeItem.getChildren().add(tableNameTreeItem);
                 }
-            } finally {
-                JdbcUtils.close(connection);
+                final CheckBoxTreeItem<String> tableNameTreeItem = new CheckBoxTreeItem<>(tableName);
+                Table table = new Table(tableName);
+                try {
+                    table = MetaUtil.getTableMeta(dataSource, tableName);
+                    if (table.getColumns() == null || table.getColumns().isEmpty()) {
+                        throw new Exception("未获取到表结构！");
+                    }
+                } catch (Throwable e) {
+                    log.error("获取表结构失败！使用jdbc原生方法获取" + tableName, e);
+                    String querySql = String.format("select * from %s where 1=2", StringUtils.isEmpty(schema) ? tableName : schema + "." + tableName);
+                    JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+                    Table finalTable = table;
+                    jdbcTemplate.query(querySql, rs -> {
+                        ResultSetMetaData rsMetaData = rs.getMetaData();
+                        for (int i = 1, len = rsMetaData.getColumnCount(); i <= len; i++) {
+                            Column column = new Column();
+                            column.setName(rsMetaData.getColumnName(i));
+                            column.setType(rsMetaData.getColumnType(i));
+                            column.setSize(rsMetaData.getColumnDisplaySize(i));
+                            column.setComment(rsMetaData.getColumnLabel(i));
+                            finalTable.setColumn(column);
+                        }
+                        return null;
+                    });
+                }
+                if (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) {
+                    tableMap.put(tableName, table);
+                } else {
+                    tableMap2.put(tableName, table);
+                }
+                for (Column column : table.getColumns()) {
+                    CheckBox isPkCheckBox = new CheckBox("Pk");
+                    if (table.getPkNames().contains(column.getName())) {
+                        isPkCheckBox.setSelected(true);
+                    }
+                    CheckBox isTimeCheckBox = new CheckBox("Time");
+                    HBox hBox = new HBox();
+                    hBox.getChildren().addAll(isPkCheckBox, isTimeCheckBox);
+                    final CheckBoxTreeItem<String> columnNameTreeItem = new CheckBoxTreeItem<>(column.getName(), hBox);
+                    tableNameTreeItem.getChildren().add(columnNameTreeItem);
+                }
+                treeItem.getChildren().add(tableNameTreeItem);
             }
         } finally {
             if (dataSource instanceof DruidDataSource) {
@@ -427,34 +418,38 @@ public class RdbmsSyncToolService {
         DataSource dataSource = SqlUtil.getDataSourceByViewType(rdbmsSyncToolController, tableTreeView);
         String schema = (tableTreeView == rdbmsSyncToolController.getTableTreeView1()) ? rdbmsSyncToolController.getSchemaTextField1().getText() : rdbmsSyncToolController.getSchemaTextField2().getText();
         try {
-            List<Entity> entityList = null;
             if (StringUtils.isNotEmpty(schema)) {
                 tableName = schema + "." + tableName;
             }
-            if (rdbmsSyncToolController.getSyncDataNumberSpinner().getValue() == -1) {
-                entityList = Db.use(dataSource).findAll(tableName);
-            } else {
-                entityList = Db.use(dataSource).pageForEntityList(Entity.create(tableName), 0, rdbmsSyncToolController.getSyncDataNumberSpinner().getValue());
-            }
-            TableView tableView = null;
+            int numPerPage = rdbmsSyncToolController.getSyncDataNumberSpinner().getValue() == -1 ? 100 : rdbmsSyncToolController.getSyncDataNumberSpinner().getValue();
+            final TableView tableView = new TableView();
+            tableView.setEditable(true);
             ObservableList<Map<String, String>> tableData = FXCollections.observableArrayList();
-            for (Entity entity : entityList) {
-                if (tableView == null) {
-                    tableView = new TableView();
-                    tableView.setEditable(true);
-                    for (String fieldName : entity.getFieldNames()) {
-                        TableColumn tableColumn = new TableColumn(fieldName);
-                        JavaFxViewUtil.setTableColumnMapValueFactory(tableColumn, fieldName);
-                        tableView.getColumns().add(tableColumn);
+            tableView.setItems(tableData);
+            String finalQuerySql = String.format("select * from %s", tableName);
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+            jdbcTemplate.query(finalQuerySql, rs -> {
+                ResultSetMetaData rsMetaData = rs.getMetaData();
+                for (int i = 0, len = rsMetaData.getColumnCount(); i < len; i++) {
+                    String fieldName = rsMetaData.getColumnName(i + 1);
+                    TableColumn tableColumn = new TableColumn(fieldName);
+                    JavaFxViewUtil.setTableColumnMapValueFactory(tableColumn, fieldName);
+                    tableView.getColumns().add(tableColumn);
+                }
+                AtomicInteger queryDataNumber = new AtomicInteger();
+                while (rs.next()) {
+                    queryDataNumber.getAndIncrement();
+                    Map<String, String> map = new HashMap<>();
+                    for (int i = 0; i < tableView.getColumns().size(); i++) {
+                        map.put(((TableColumn) tableView.getColumns().get(i)).getText(), rs.getString(i + 1));
                     }
-                    tableView.setItems(tableData);
+                    tableData.add(map);
+                    if (queryDataNumber.get() > numPerPage) {
+                        break;
+                    }
                 }
-                Map<String, String> map = new HashMap<>();
-                for (String fieldName : entity.getFieldNames()) {
-                    map.put(fieldName, entity.getStr(fieldName));
-                }
-                tableData.add(map);
-            }
+                return null;
+            });
             if (tableView == null) {
                 TooltipUtil.showToast("表中无数据！");
             } else {

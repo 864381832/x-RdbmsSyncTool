@@ -253,7 +253,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                 Future<?> future = ThreadUtil.execAsync(() -> {
                     try {
                         textFieldInputHistoryDialog.addConfig(hostText1.getText(), portText1.getText(), dbNameText1.getText(), dbTypeText1.getValue(), userNameText1.getText(), pwdText1.getText(), jdbcUrlField1.getText(), schemaTextField1.getText());
-                        entDataToolService.connectAction(dbTypeText1.getValue(), hostText1.getText(), portText1.getText(), dbNameText1.getText(), userNameText1.getText(), pwdText1.getText(), tableTreeView1);
+                        entDataToolService.connectAction(dbTypeText1.getValue(), hostText1.getText(), portText1.getText(), dbNameText1.getText(), userNameText1.getText(), pwdText1.getText(), jdbcUrlField1.getText(), schemaTextField1.getText(), tableTreeView1);
                     } catch (Exception e) {
                         log.error("连接失败：", e);
                     }
@@ -275,7 +275,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                 Future<?> future = ThreadUtil.execAsync(() -> {
                     try {
                         textFieldInputHistoryDialog.addConfig(hostText2.getText(), portText2.getText(), dbNameText2.getText(), dbTypeText2.getValue(), userNameText2.getText(), pwdText2.getText(), jdbcUrlField2.getText(), schemaTextField2.getText());
-                        entDataToolService.connectAction(dbTypeText2.getValue(), hostText2.getText(), portText2.getText(), dbNameText2.getText(), userNameText2.getText(), pwdText2.getText(), tableTreeView2);
+                        entDataToolService.connectAction(dbTypeText2.getValue(), hostText2.getText(), portText2.getText(), dbNameText2.getText(), userNameText2.getText(), pwdText2.getText(), jdbcUrlField2.getText(), schemaTextField2.getText(), tableTreeView2);
                     } catch (Exception e) {
                         log.error("连接失败：", e);
                     }
