@@ -114,6 +114,13 @@
 			<version>4.0.4</version>
 		</dependency>
 
+		<!-- https://mvnrepository.com/artifact/com.ibm.db2/jcc -->
+		<dependency>
+			<groupId>com.ibm.db2</groupId>
+			<artifactId>jcc</artifactId>
+			<version>11.5.5.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>com.dm</groupId>
 			<artifactId>dmjdbc7</artifactId>
