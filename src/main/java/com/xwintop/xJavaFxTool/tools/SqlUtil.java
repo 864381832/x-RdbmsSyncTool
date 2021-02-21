@@ -34,6 +34,8 @@ public class SqlUtil {
         dataSource.setUrl(DataxJsonUtil.getJdbcUrl(jdbcUrl, dbType, dbIp, dbPort, dbName));
         if ("access".equals(dbType)) {
             dataSource.setDriverClassName("net.ucanaccess.jdbc.UcanaccessDriver");
+        } else if ("kingbase".equals(dbType)) {
+            dataSource.setDriverClassName("com.kingbase8.Driver");
         }
         dataSource.setUsername(dbUserName);
         dataSource.setPassword(dbUserPassword);
@@ -62,6 +64,8 @@ public class SqlUtil {
         try {
             if ("access".equals(dbType)) {
                 driver = "net.ucanaccess.jdbc.UcanaccessDriver";
+            } else if ("kingbase".equals(dbType)) {
+                driver = "com.kingbase8.Driver";
             } else {
                 driver = JdbcUtils.getDriverClassName(jdbcUrl);
             }

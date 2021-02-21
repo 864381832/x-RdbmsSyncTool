@@ -27,6 +27,8 @@ public class DataxJsonUtil {
             return "9092";
         } else if ("db2".equalsIgnoreCase(DB_TYPE)) {
             return "50000";
+        } else if ("kingbase".equalsIgnoreCase(DB_TYPE)) {
+            return "54321";
         }
         return null;
     }
@@ -66,6 +68,8 @@ public class DataxJsonUtil {
             jdbcUrl = String.format("jdbc:ucanaccess://%s", dbName);
         } else if ("db2".equalsIgnoreCase(DB_TYPE)) {
             jdbcUrl = String.format("jdbc:db2://%s:%s/%s", dbIp, dbPort, dbName);
+        } else if ("kingbase".equalsIgnoreCase(DB_TYPE)) {
+            jdbcUrl = String.format("jdbc:kingbase8://%s:%s/%s", dbIp, dbPort, dbName);
         }
         log.info("解析出jdbcUrl: " + jdbcUrl);
         return jdbcUrl;
@@ -89,6 +93,8 @@ public class DataxJsonUtil {
         } else if ("db2".equals(type)) {
             dbUser = StringUtils.defaultIfBlank(schema, userName).toUpperCase();
         } else if ("h2Server".equals(type)) {
+            dbUser = StringUtils.defaultIfBlank(schema, "PUBLIC");
+        } else if ("kingbase".equals(type)) {
             dbUser = StringUtils.defaultIfBlank(schema, "PUBLIC");
         } else {
             dbUser = StringUtils.defaultIfBlank(schema, userName);

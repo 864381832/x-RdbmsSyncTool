@@ -32,7 +32,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
     private RdbmsSyncToolService entDataToolService = new RdbmsSyncToolService(this);
     private TextFieldInputHistoryDialog textFieldInputHistoryDialog = new TextFieldInputHistoryDialog("./javaFxConfigure/dbUrlDocumentConfigure.yml", "host", "port", "dbName", "dbType", "userName", "password", "jdbcUrl", "schema");
     private ContextMenu contextMenu = new ContextMenu();
-    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm", "sqlite", "h2Embedded", "h2Server", "access", "db2"};
+    private String[] dbTypeStrings = new String[]{"mysql", "oracle", "oracleSid", "postgresql", "sqlserver", "sqlserverold", "dm", "sqlite", "h2Embedded", "h2Server", "access", "db2", "kingbase"};
     private String[] outputPathStrings = new String[]{"./executor"};
     private String[] tableTypeStrings = new String[]{"TABLE+VIEW", "TABLE", "VIEW", "SYSTEM_TABLE", "GLOBAL_TEMPORARY", "LOCAL_TEMPORARY", "ALIAS", "SYNONYM"};
     private String[] dataSourceTypeStrings = new String[]{"Druid", "Driver", "Simple", "Hikari"};
