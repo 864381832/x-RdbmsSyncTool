@@ -103,6 +103,8 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
 
     private void addTableTreeViewMouseClicked(TreeView<String> tableTreeView) {
         tableTreeView.setOnMouseClicked(event -> {
+            contextMenu.hide();
+            contextMenu.getItems().clear();
             TreeItem<String> selectedItem = tableTreeView.getSelectionModel().getSelectedItem();
             if (selectedItem == null) {
                 return;
@@ -110,24 +112,20 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
             if (event.getButton() == MouseButton.PRIMARY) {
                 selectedItem.setExpanded(!selectedItem.isExpanded());
             } else if (event.getButton() == MouseButton.SECONDARY) {
-                MenuItem menu_UnfoldAll = new MenuItem("展开所有");
-                menu_UnfoldAll.setOnAction(event1 -> {
+                JavaFxViewUtil.addMenuItem(contextMenu, "展开所有", event1 -> {
                     tableTreeView.getRoot().setExpanded(true);
                     tableTreeView.getRoot().getChildren().forEach(stringTreeItem -> {
                         stringTreeItem.setExpanded(true);
                     });
                 });
-                MenuItem menu_FoldAll = new MenuItem("折叠所有");
-                menu_FoldAll.setOnAction(event1 -> {
+                JavaFxViewUtil.addMenuItem(contextMenu, "折叠所有", event1 -> {
                     tableTreeView.getRoot().getChildren().forEach(stringTreeItem -> {
                         stringTreeItem.setExpanded(false);
                     });
                 });
-                MenuItem menu_executeSql = new MenuItem("执行Sql");
-                menu_executeSql.setOnAction(event1 -> {
+                JavaFxViewUtil.addMenuItem(contextMenu, "执行Sql", event1 -> {
                     entDataToolService.executeSql(tableTreeView);
                 });
-                ContextMenu contextMenu = new ContextMenu(menu_UnfoldAll, menu_FoldAll, menu_executeSql);
                 if ("源端库表".equals(selectedItem.getValue()) || "目标端库表".equals(selectedItem.getValue())) {
                     JavaFxViewUtil.addMenuItem(contextMenu, "一键复制表名", event1 -> {
                         String tableNames = String.join(",", RdbmsSyncToolService.getSelectNameList(selectedItem));
@@ -213,8 +211,7 @@ public class RdbmsSyncToolController extends RdbmsSyncToolView {
                         });
                     }
                 }
-
-                tableTreeView.setContextMenu(contextMenu);
+                contextMenu.show(tableTreeView, null, event.getX(), event.getY());
             }
         });
     }
