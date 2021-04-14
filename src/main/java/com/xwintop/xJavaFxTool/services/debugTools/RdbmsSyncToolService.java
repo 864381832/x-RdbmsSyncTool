@@ -369,6 +369,18 @@ public class RdbmsSyncToolService {
                     for (int i = 0; i < columnList2.length; i++) {
                         dataObjects[i] = rs.getObject(i + 1);
                         switch (rsMetaData.getColumnType(i + 1)) {
+                            case Types.CHAR:
+                            case Types.NCHAR:
+                            case Types.VARCHAR:
+                            case Types.LONGVARCHAR:
+                            case Types.NVARCHAR:
+                            case Types.LONGNVARCHAR:
+                                dataObjects[i] = rs.getString(i + 1);
+                                break;
+                            case Types.CLOB:
+                            case Types.NCLOB:
+                                dataObjects[i] = rs.getString(i + 1);
+                                break;
                             case Types.TIME:
                                 dataObjects[i] = rs.getTime(i + 1);
                                 break;
@@ -381,6 +393,13 @@ public class RdbmsSyncToolService {
                                 break;
                             case Types.TIMESTAMP:
                                 dataObjects[i] = rs.getTimestamp(i + 1);
+                                break;
+                            case Types.BINARY:
+                            case Types.VARBINARY:
+                            case Types.BLOB:
+                            case Types.LONGVARBINARY:
+                                byte[] value = rs.getBytes(i + 1);
+                                dataObjects[i] = value == null ? null : new String(value);
                                 break;
                             default:
                                 dataObjects[i] = rs.getObject(i + 1);
