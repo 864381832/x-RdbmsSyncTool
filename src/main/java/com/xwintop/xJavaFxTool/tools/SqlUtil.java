@@ -211,7 +211,7 @@ public class SqlUtil {
         if ("sqlserver".equalsIgnoreCase(DB_TYPE)) {
             stringBuffer.append(" > CONVERT(datetime,'" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd HH:mm:ss.SSS") + "',21) and ");
             stringBuffer.append(filterTimeColumn).append(" <= CONVERT(datetime,'" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd HH:mm:ss.SSS") + "',21)");
-        } else if ("oracle".equalsIgnoreCase(DB_TYPE)) {
+        } else if ("oracle".equalsIgnoreCase(DB_TYPE) || "dm".equalsIgnoreCase(DB_TYPE)) {
             stringBuffer.append(" > TO_TIMESTAMP('" + DateFormatUtils.format(lastSyncTime, "yyyy-MM-dd-HH:mm:ss") + String.format(".%09d", lastSyncTime.getNanos()) + "','yyyy-MM-dd-hh24:mi:ss.ff9') and ");
             stringBuffer.append(filterTimeColumn).append(" <= TO_TIMESTAMP('" + DateFormatUtils.format(maxLastupdate, "yyyy-MM-dd-HH:mm:ss") + String.format(".%09d", maxLastupdate.getNanos()) + "','yyyy-MM-dd-hh24:mi:ss.ff9')");
         } else if ("mysql".equalsIgnoreCase(DB_TYPE)) {
