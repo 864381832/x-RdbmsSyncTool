@@ -5,6 +5,7 @@ import cn.hutool.db.meta.Column;
 import cn.hutool.db.meta.MetaUtil;
 import cn.hutool.db.meta.Table;
 import cn.hutool.db.meta.TableType;
+import com.alibaba.druid.DbType;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.util.JdbcUtils;
 import com.xwintop.xJavaFxTool.controller.debugTools.RdbmsSyncToolController;
@@ -71,7 +72,7 @@ public class RdbmsSyncToolService {
                     }
                     Connection connection = dataSource.getConnection();
                     try {
-                        tableNames = JdbcUtils.showTables(connection, dbType);
+                        tableNames = JdbcUtils.showTables(connection, DbType.of(dbType));
                     } finally {
                         JdbcUtils.close(connection);
                     }
