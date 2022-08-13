@@ -382,6 +382,36 @@ public class RdbmsSyncToolService {
                             case Types.NCLOB:
                                 dataObjects[i] = rs.getString(i + 1);
                                 break;
+                            case Types.SMALLINT:
+                            case Types.TINYINT:
+                            case Types.INTEGER:
+                            case Types.BIGINT:
+                                try {
+                                    dataObjects[i] = rs.getBigDecimal(i + 1);
+                                } catch (Exception e) {
+                                    log.warn("获取数据异常,列:{} ;类型:{}", i + 1, rsMetaData.getColumnType(i + 1));
+                                    dataObjects[i] = rs.getString(i + 1);
+                                }
+                                break;
+                            case Types.NUMERIC:
+                            case Types.DECIMAL:
+                                try {
+                                    dataObjects[i] = rs.getBigDecimal(i + 1);
+                                } catch (Exception e) {
+                                    log.warn("获取数据异常,列:{} ;类型:{}", i + 1, rsMetaData.getColumnType(i + 1));
+                                    dataObjects[i] = rs.getString(i + 1);
+                                }
+                                break;
+                            case Types.FLOAT:
+                            case Types.REAL:
+                            case Types.DOUBLE:
+                                try {
+                                    dataObjects[i] = rs.getBigDecimal(i + 1);
+                                } catch (Exception e) {
+                                    log.warn("获取数据异常,列:{} ;类型:{}", i + 1, rsMetaData.getColumnType(i + 1));
+                                    dataObjects[i] = rs.getString(i + 1);
+                                }
+                                break;
                             case Types.TIME:
                                 dataObjects[i] = rs.getTime(i + 1);
                                 break;
@@ -399,8 +429,7 @@ public class RdbmsSyncToolService {
                             case Types.VARBINARY:
                             case Types.BLOB:
                             case Types.LONGVARBINARY:
-                                byte[] value = rs.getBytes(i + 1);
-                                dataObjects[i] = value == null ? null : new String(value);
+                                dataObjects[i] = rs.getBytes(i + 1);
                                 break;
                             default:
                                 dataObjects[i] = rs.getObject(i + 1);

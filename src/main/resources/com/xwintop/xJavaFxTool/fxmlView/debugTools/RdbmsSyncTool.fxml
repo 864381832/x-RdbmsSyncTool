@@ -72,7 +72,7 @@
                               <Label minWidth="30.0" text="密码" />
                               <StackPane>
                                  <children>
-                                    <PasswordField fx:id="pwdText2" text="easipass" />
+                                    <PasswordField fx:id="pwdText2" text="" />
                                  </children>
                               </StackPane>
                               <TextField fx:id="jdbcUrlField2" promptText="jdbcUrl">
